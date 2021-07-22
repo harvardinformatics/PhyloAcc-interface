@@ -1,1 +1,5 @@
 *.code-workspace
+.travis.yml
+
+*test*
+*.errlog
