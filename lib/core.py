@@ -28,7 +28,10 @@ def errorOut(errnum, errmsg, globs):
 
 def fileCheck(globs):
 # Checks file options.
-    files = ['aln-file', 'bed-file', 'id-file', 'aln-dir', 'mod-file'];
+    if globs['label-tree']:
+        files = ['mod-file'];
+    else:
+        files = ['aln-file', 'bed-file', 'id-file', 'aln-dir', 'mod-file'];
     for f in files:
         if globs[f]:
             if not os.path.isfile(globs[f]) and not os.path.isdir(globs[f]):
@@ -78,6 +81,36 @@ def execCheck(globs, a):
         # Print the check string if --depcheck is set.
 
     return globs, deps_passed;
+
+#############################################################################
+
+def detectCompression(filename, globs):
+# Detect compression of a file by examining the first lines in the file
+
+    magic_dict = {
+            b"\x1f\x8b\x08": "gz",
+            b"\x42\x5a\x68": "bz2",
+            b"\x50\x4b\x03\x04": "zip"
+        }
+    # An encoded set of possible "magic strings" that start different types of compressed files
+    # From: https://www.garykessler.net/library/file_sigs.html
+    # \x is the escape code for hex values
+    # b converts strings to bytes
+
+    max_len = max(len(x) for x in magic_dict)
+    # The number of characters to read from the beginning of the file should be the length of
+    # the longest magic string
+
+    file_start = open(filename, "rb").read(max_len);
+    # Read the beginning of the file up to the length of the longest magic string
+    
+
+    for magic_string in magic_dict:
+        if file_start.startswith(magic_string):
+            globs['input-compression'] = magic_dict[magic_string];
+    # Check each magic string against the start of the file
+
+    return globs;
 
 #############################################################################
 
@@ -151,7 +184,7 @@ def report_step(globs, step, step_start_time, step_status, start=False):
         dashes = 175;
 
     cur_time = timeit.default_timer();
-    col_widths = [ 14, 10, 40, 30, 20, 16 ];
+    col_widths = [ 14, 10, 40, 40, 20, 16 ];
     if globs['psutil']:
         col_widths += [25, 20];
     if start:
@@ -186,7 +219,7 @@ def report_step(globs, step, step_start_time, step_status, start=False):
             file_col_widths = col_widths[:3] + [30] + col_widths[4:];
             
             out_line = [ spacedOut(str(out_line[i]), term_col_widths[i]) for i in range(len(out_line)) ];
-            sys.stdout.write("\b" * 30);
+            sys.stdout.write("\b" * 40);
             sys.stdout.write("".join(out_line) + "\n");
             sys.stdout.flush();
             #print(file_col_widths);
@@ -217,9 +250,18 @@ def endProg(globs):
     #         printWrite(globs['logfilename'], globs['log-v'], "# Final BAM file:                  " + globs['iter-final-bam']); 
     #     else:
     #         printWrite(globs['logfilename'], globs['log-v'], "# Final Assembly:                  " + globs['consensus-file']);
-    
+
     printWrite(globs['logfilename'], globs['log-v'], "# Output directory for this run:   " + globs['outdir']);
     printWrite(globs['logfilename'], globs['log-v'], "# Log file for this run:           " + globs['logfilename']);
+
+    if globs['aln-stats-written']:
+        printWrite(globs['logfilename'], globs['log-v'], "# Alignment stats file:            " + globs['alnstatsfile']);    
+
+    if globs['scf-stats-written']:
+        printWrite(globs['logfilename'], globs['log-v'], "# Concordance factor stats file:   " + globs['scfstatsfile']); 
+
+    if globs['scf-tree-written']:
+        printWrite(globs['logfilename'], globs['log-v'], "# Concordance factor tree file:    " + globs['scftreefile']); 
 
     if globs['exit-code'] != 0:
         printWrite(globs['logfilename'], globs['log-v'], "#\n# ERROR: NON-ZERO EXIT STATUS.");

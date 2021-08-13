@@ -3,3 +3,9 @@
 
 *test*
 *.errlog
+
+*.pyc
+
+lib/__pycache__/
+
+data/

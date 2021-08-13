@@ -37,17 +37,35 @@ def init():
         'mod-file' : False,
         # Input rate and tree file from PHAST
 
+        'input-compression' : 'none',
+        # The type of compression used for input sequence files
+
         'outdir' : '',
         'run-name' : 'phyloacc',
         'logfilename' : 'phyloacc.errlog',
+        'alnstatsfile' : 'phyloacc-aln-stats.csv',
+        'scfstatsfile' : 'phyloacc-scf-stats.csv',
+        'scftreefile' : 'phyloacc-scf.tree',
         'logdir' : '',
         'tmpdir' : 'System default.',
         'overwrite' : False,
         # I/O options
         
-        'targets' : False,
-        'conserved' : False,
-        'outgroup' : False,
+        'tree-string' : False,
+        'tree-dict' : False,
+        'labeled-tree' : False,
+        'root-node' : False,
+        # Tree variables
+
+        'in-seqs' : {},
+        'in-bed' : {},
+        'alns' : {},
+        'aln-stats' : {},
+        # Sequence variables
+
+        'targets' : [],
+        'conserved' : [],
+        'outgroup' : [],
         # Phylo options
 
         'burnin' : 500,
@@ -60,14 +78,22 @@ def init():
         'phyloacc-gt' : '',
         # Dependency paths
 
+        'num-procs' : 1,
         'num-jobs' : 1,
+        'procs-per-job' : 1,
         # Number of jobs/threads to use
 
+        'label-tree' : False,
+        'info' : False,
         'norun' : False,
         'dryrun' : False,
         'quiet' : False,
         # Other user options
 
+        'skip-chars' : ["-", "N"],
+        'aln-stats-written' : False,
+        'scf-stats-written' : False,
+        'scf-tree-written' : False,
         'pad' : 82,
         'endprog' : False,
         'exit-code' : 0,
@@ -76,7 +102,7 @@ def init():
         'progstarttime' : 0,
         'stepstarttime' : 0,
         'pids' : "",
-        'psutil' : "",
+        'psutil' : True,
         'debug' : False,
         'nolog' : False,
         # Internal stuff
