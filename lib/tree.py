@@ -470,7 +470,10 @@ def locusSCF(locus, aln, quartets, tree_dict, skip_chars):
         if locus_scf[node]['avg-scf'] != "NA":
             scf_sum += locus_scf[node]['avg-scf'];
             num_nodes += 1;
-    scf_avg = scf_sum / num_nodes;
+    if num_nodes != 0:
+        scf_avg = scf_sum / num_nodes;
+    else:
+        scf_avg = "NA";
     # Average over all nodes in the current locus to get gene-wide average sCF
 
     return locus_scf, scf_sum, num_nodes, scf_avg, locus, quartet_scores;

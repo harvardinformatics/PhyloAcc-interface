@@ -8,6 +8,10 @@
 # Summer 2021
 #############################################################################
 
+# phyloacc.py -a PhyloAcc/Simulation_ratite/simu_500_200_diffr_2-1.fasta -b PhyloAcc/Simulation_ratite/simu_500_200_diffr_2-1.bed -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 12 --overwrite
+
+# phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed.gz -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -o test-real -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 12 --overwrite
+ 
 import sys
 import os
 import lib.core as PC
@@ -25,6 +29,8 @@ if __name__ == '__main__':
     globs = params.init();
     # Get the global params as a dictionary.
     
+    print("\n" + " ".join(sys.argv) + "\n");
+
     if any(v in sys.argv for v in ["--version", "-version", "--v", "-v"]):
         print("# PhyloAcc version " + globs['interface-version'] + " released on " + globs['releasedate'])
         sys.exit(0);
@@ -63,10 +69,10 @@ if __name__ == '__main__':
     # Calculate avg. sCF per locus
 
     globs = OUT.writeAlnStats(globs);
-    # Write out the summary stats
+    # Write out the alignment summary stats
 
     globs = OUT.writeSCFStats(globs);
-    # Write out the summary stats
+    # Write out the sCF summary stats
 
     PC.endProg(globs);
 

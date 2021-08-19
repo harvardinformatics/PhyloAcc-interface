@@ -84,11 +84,14 @@ def execCheck(globs, a):
 
 #############################################################################
 
-def detectCompression(filename, globs):
+def detectCompression(filename):
 # Detect compression of a file by examining the first lines in the file
+
+    compression_type = "none";
 
     magic_dict = {
             b"\x1f\x8b\x08": "gz",
+            # b"\x1f\x8b\x08\x08": "gz",
             b"\x42\x5a\x68": "bz2",
             b"\x50\x4b\x03\x04": "zip"
         }
@@ -103,14 +106,13 @@ def detectCompression(filename, globs):
 
     file_start = open(filename, "rb").read(max_len);
     # Read the beginning of the file up to the length of the longest magic string
-    
 
     for magic_string in magic_dict:
         if file_start.startswith(magic_string):
-            globs['input-compression'] = magic_dict[magic_string];
+            compression_type = magic_dict[magic_string];
     # Check each magic string against the start of the file
 
-    return globs;
+    return compression_type;
 
 #############################################################################
 

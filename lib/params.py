@@ -37,7 +37,8 @@ def init():
         'mod-file' : False,
         # Input rate and tree file from PHAST
 
-        'input-compression' : 'none',
+        'seq-compression' : 'none',
+        'bed-compression' : 'none',
         # The type of compression used for input sequence files
 
         'outdir' : '',
