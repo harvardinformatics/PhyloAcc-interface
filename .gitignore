@@ -1,1 +1,14 @@
 *.code-workspace
+.travis.yml
+
+*test*
+*.errlog
+
+*.pyc
+
+lib/__pycache__/
+
+data/
+
+job-scripts/
+job_scripts/
