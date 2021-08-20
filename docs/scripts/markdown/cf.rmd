@@ -76,7 +76,7 @@ sim_bed = read.csv("../../data/simu_500_200_diffr_2-1.bed", header=F, sep="\t")
 names(sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate")
 sim_data = merge(sim_stats, sim_bed, by="locus")  
 
-ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-1000.csv", header=T)
+ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-2000.csv", header=T)
 ratite_bed = read.csv("../../data/allspecies_cnee_concat_partitions.bed", header=F, sep="\t")
 names(ratite_bed) = c("scaff", "start", "end", "locus")
 ratite_data = merge(ratite_stats, ratite_bed, by="locus")
@@ -118,7 +118,7 @@ ratite_var_dist = ggplot(ratite_data, aes(x=variable.sites)) +
   ylab("# loci") +
   bartheme()
 
-var_dists = plot_grid(sim_var_dist, ratite_var_dist, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+var_dists = plot_grid(sim_var_dist, ratite_var_dist, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
 print(var_dists)
 
 ```
@@ -142,7 +142,7 @@ ratite_inf_dist = ggplot(ratite_data, aes(x=informative.sites)) +
   ylab("# loci") +
   bartheme()
 
-inf_dists = plot_grid(sim_inf_dist, ratite_inf_dist, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+inf_dists = plot_grid(sim_inf_dist, ratite_inf_dist, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
 print(inf_dists)
 
 ```
@@ -168,7 +168,7 @@ ratite_var_inf_cor = ggplot(ratite_data, aes(x=variable.sites, y=informative.sit
   ylab("# informative sites") +
   bartheme()
 
-var_inf_cors = plot_grid(sim_var_inf_cor, ratite_var_inf_cor, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+var_inf_cors = plot_grid(sim_var_inf_cor, ratite_var_inf_cor, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
 print(var_inf_cors)
 
 ```
@@ -192,7 +192,7 @@ ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
   ylab("# loci") +
   bartheme()
 
-scf_dists = plot_grid(sim_scf_dist, ratite_scf_dist, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+scf_dists = plot_grid(sim_scf_dist, ratite_scf_dist, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
 print(scf_dists)
 
 ```
@@ -218,7 +218,7 @@ ratite_inf_scf_cor = ggplot(ratite_data, aes(x=informative.sites, y=node.scf.avg
   ylab("Avg. sCF") +
   bartheme()
 
-inf_scf_cors = plot_grid(sim_inf_scf_cor, ratite_inf_scf_cor, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+inf_scf_cors = plot_grid(sim_inf_scf_cor, ratite_inf_scf_cor, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
 print(inf_scf_cors)
 
 ```
