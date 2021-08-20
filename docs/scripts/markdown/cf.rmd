@@ -180,7 +180,7 @@ sim_scf_dist = ggplot(sim_data, aes(x=node.scf.avg)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
   #ggtitle("500 simulated loci") +
-  xlab("# informative sites") +
+  xlab("Avg. sCF") +
   ylab("# loci") +
   bartheme()
 #print(var_dist)
@@ -188,7 +188,7 @@ sim_scf_dist = ggplot(sim_data, aes(x=node.scf.avg)) +
 ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
-  xlab("# informative sites") +
+  xlab("Avg. sCF") +
   ylab("# loci") +
   bartheme()
 
