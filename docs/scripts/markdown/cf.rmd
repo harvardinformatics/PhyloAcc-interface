@@ -1,0 +1,274 @@
+---
+title: "PhyloAcc concordance factors"
+author: "[gwct](https://gwct.github.io/)"
+date: "`r format(Sys.time(), '%m/%d/%Y %H:%M:%S %Z')`"
+output:
+  #html_document:
+  rmdformats::robobook:
+    highlight: kate
+    includes:
+      in_header: '../html-chunks/rmd_header.html'
+    df_print: paged
+    code_folding: hide
+    number_sections: true
+    toc_depth: 3
+---
+
+
+```{r setup, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(ggplot2)
+library(cowplot)
+source("../lib/design.r")
+```
+
+[< Back ](index.html)
+
+# Introduction
+
+Tree misspecification for phylogenetic analyses of molecular evolution can cause inaccurate inferences of substitutions and affect rate calculations per branch. In order to account for this PhyloAcc is being implemented with the gene tree space as another parameter. However, because this is computationally intensive, we may want to assess which loci need the gene tree model prior to running PhyloAcc.
+
+Concordance factors count for each branch in a species tree the number of loci that contain that branch (gene concordance factors; gCF) and the number of decisive sites that agree with that split (site concordance factors; sCF). Inferring gene/locus trees for every CNEE would also be time consuming, but counting site patterns is not.
+
+We propose to calculate sCF per node for every input loci and average across nodes to obtain a locus-wide concordance factor. This could inform model selection for PhyloAcc, for instance, loci with an sCF > 0.5 (meaning more than 50% of sites support the species tree) may not need the computationally intensive gene tree model.
+
+# Implementation
+
+Basically the same algorithm as IQ-tree, but we also average all nodes for each locus. Here are some useful links about this method:
+
+* Paper: [Minh et al. 2020](https://academic.oup.com/mbe/article/37/9/2727/5828940)
+* [IQ-tree tutorial](http://www.iqtree.org/doc/Concordance-Factor)
+* [Blog post](http://www.robertlanfear.com/blog/files/concordance_factors.html)
+
+## Brief description
+
+For every internal branch $x$ in the input phylogeny (treated as an unrooted tree), many possible quartets of tips/species exist. Counting site patterns for all quartets may be time-consuming, so we sample 100 quartets around each branch (or all quartets if there are fewer than 100). For each quartet $q$, the subalignment is obtained and site patterns are counted. Particularly, we are interested in decisive sites: those which have an allele present for each species in the quartet (no - or N), and that are informative (2 alleles present at least twice). We then count the number of decisive sites that are concordant with the species topology of this quartet. For a given quartet $q$ on branch $x$, the concordance factor is:
+
+$$CF_q(x) = \frac{|\{ \text{site} : \text{site is concordant with } x \}}{|\{ \text{site} : \text{site is decisive for } x \}}$$
+
+This is equation 2 from [Minh et al. 2020](https://academic.oup.com/mbe/article/37/9/2727/5828940).
+
+Then to get a concordance factor for each branch, $sCF(x)$, we average across quartets:
+
+$$sCF(x) = \frac{1}{m}\left[{\sum_{q}CF_q(x)}\right]$$
+
+Where $m$ is the number of quartets sampled. This is equation 3 from [Minh et al. 2020](https://academic.oup.com/mbe/article/37/9/2727/5828940).
+
+While this method is normally used to calculate concordance factors for all branches in a tree across an entire set of alignments, here instead we average concordance factors across all branches in the tree per locus, giving us an average concordance factor per locus $sCF(l)$:
+
+$$sCF(l) = \frac{1}{n}\left[{\sum_{x}sCF(x)}\right]$$
+
+Where $n$ is the number of branches in the tree.
+
+# Notes on runtime
+
+Notes on runtime for concordance factor calculations:
+
+* ~3 minutes for all 500 simulated loci with 12 cores
+* 1 minute for 1000 loci with 32 cores, but strange slowdowns when I scale up...
+
+# Results
+
+```{r read, out.width="100%", fig.align = "center", warning=FALSE}
+sim_stats = read.csv("../../data/phyloacc-aln-stats-sim.csv", header=T)
+sim_bed = read.csv("../../data/simu_500_200_diffr_2-1.bed", header=F, sep="\t")
+names(sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate")
+sim_data = merge(sim_stats, sim_bed, by="locus")  
+
+ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-1000.csv", header=T)
+ratite_bed = read.csv("../../data/allspecies_cnee_concat_partitions.bed", header=F, sep="\t")
+names(ratite_bed) = c("scaff", "start", "end", "locus")
+ratite_data = merge(ratite_stats, ratite_bed, by="locus")
+```
+
+## Locus length (ratite data -- all simulated loci are 200bp)
+
+```{r ratite-len-dist, out.width="50%", fig.align = "center", warning=FALSE}
+ratite_data$length = ratite_data$end - ratite_data$start
+
+ratite_var_dist = ggplot(ratite_data, aes(x=length)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=100, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("locus length (bp)") +
+  ylab("# loci") +
+  bartheme()
+
+print(ratite_var_dist)
+print(paste("# Avg. length: ", mean(ratite_data$length)))
+print(paste("# Median length: ", median(ratite_data$length)))
+```
+
+## Variable sites per locus
+
+```{r var-site-dists, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+sim_var_dist = ggplot(sim_data, aes(x=variable.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# variable sites") +
+  ylab("# loci") +
+  bartheme()
+#print(var_dist)
+
+ratite_var_dist = ggplot(ratite_data, aes(x=variable.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("# variable sites") +
+  ylab("# loci") +
+  bartheme()
+
+var_dists = plot_grid(sim_var_dist, ratite_var_dist, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+print(var_dists)
+
+```
+
+## Informative sites per locus
+
+```{r inf-site-dists, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+sim_inf_dist = ggplot(sim_data, aes(x=informative.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# informative sites") +
+  ylab("# loci") +
+  bartheme()
+#print(var_dist)
+
+ratite_inf_dist = ggplot(ratite_data, aes(x=informative.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("# informative sites") +
+  ylab("# loci") +
+  bartheme()
+
+inf_dists = plot_grid(sim_inf_dist, ratite_inf_dist, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+print(inf_dists)
+
+```
+
+## Variable sites vs. informative sites
+
+```{r var-inf-site-cors, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+sim_var_inf_cor = ggplot(sim_data, aes(x=variable.sites, y=informative.sites)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# variable sites") +
+  ylab("# informative sites") +
+  bartheme()
+#print(var_dist)
+
+ratite_var_inf_cor = ggplot(ratite_data, aes(x=variable.sites, y=informative.sites)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=1)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  xlab("# variable sites") +
+  ylab("# informative sites") +
+  bartheme()
+
+var_inf_cors = plot_grid(sim_var_inf_cor, ratite_var_inf_cor, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+print(var_inf_cors)
+
+```
+
+## Average sCF per locus
+
+```{r scf-dists, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+sim_scf_dist = ggplot(sim_data, aes(x=node.scf.avg)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# informative sites") +
+  ylab("# loci") +
+  bartheme()
+#print(var_dist)
+
+ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("# informative sites") +
+  ylab("# loci") +
+  bartheme()
+
+scf_dists = plot_grid(sim_scf_dist, ratite_scf_dist, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+print(scf_dists)
+
+```
+
+## Informative sites vs. sCF
+
+```{r inf-sites-scf-cors, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+sim_inf_scf_cor = ggplot(sim_data, aes(x=informative.sites, y=node.scf.avg)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# informative sites") +
+  ylab("Avg. sCF") +
+  bartheme()
+#print(var_dist)
+
+ratite_inf_scf_cor = ggplot(ratite_data, aes(x=informative.sites, y=node.scf.avg)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=1)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  xlab("# informative sites") +
+  ylab("Avg. sCF") +
+  bartheme()
+
+inf_scf_cors = plot_grid(sim_inf_scf_cor, ratite_inf_scf_cor, ncol=2, labels=c("500 simulated loci", "1000 ratite loci"), label_size=12)
+print(inf_scf_cors)
+
+```
+
+## Distribution of rho (simulated data only)
+
+```{r sim-rho-dist, out.width="50%", fig.align = "center", warning=FALSE}
+sim_rho_dist = ggplot(sim_data, aes(x=rho)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=100, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("rho") +
+  ylab("# loci") +
+  bartheme()
+
+print(sim_rho_dist)
+print(paste("# Avg. rho: ", mean(sim_data$rho)))
+print(paste("# Median rho: ", median(sim_data$rho)))
+```
+
+## Rho vs. informative sites (simulated data only)
+
+```{r rho-inf-sites-cor, out.width="50%", fig.align = "center", warning=FALSE}
+sim_rho_inf_cor = ggplot(sim_data, aes(x=rho, y=informative.sites)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("rho") +
+  ylab("# informative sites") +
+  bartheme()
+
+print(sim_rho_inf_cor)
+
+```
+
+[< Back ](index.html)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
