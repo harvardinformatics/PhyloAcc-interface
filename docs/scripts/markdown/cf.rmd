@@ -76,6 +76,11 @@ sim_bed = read.csv("../../data/simu_500_200_diffr_2-1.bed", header=F, sep="\t")
 names(sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate")
 sim_data = merge(sim_stats, sim_bed, by="locus")  
 
+msc_sim_stats = read.csv("../../data/phyloacc-aln-stats-sim-msc.csv", header=T)
+msc_sim_bed = read.csv("../../data/simu_msc_200_100_2-5.bed", header=F, sep="\t")
+names(msc_sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate", "gene.tree")
+msc_sim_data = merge(msc_sim_stats, msc_sim_bed, by="locus")  
+
 ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-2000.csv", header=T)
 ratite_bed = read.csv("../../data/allspecies_cnee_concat_partitions.bed", header=F, sep="\t")
 names(ratite_bed) = c("scaff", "start", "end", "locus")
@@ -95,13 +100,13 @@ ratite_var_dist = ggplot(ratite_data, aes(x=length)) +
   bartheme()
 
 print(ratite_var_dist)
-print(paste("# Avg. length: ", mean(ratite_data$length)))
-print(paste("# Median length: ", median(ratite_data$length)))
+cat(paste("# Avg. length: ", mean(ratite_data$length)))
+cat(paste("# Median length: ", median(ratite_data$length)))
 ```
 
 ## Variable sites per locus
 
-```{r var-site-dists, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+```{r var-site-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
 sim_var_dist = ggplot(sim_data, aes(x=variable.sites)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
@@ -111,21 +116,30 @@ sim_var_dist = ggplot(sim_data, aes(x=variable.sites)) +
   bartheme()
 #print(var_dist)
 
-ratite_var_dist = ggplot(ratite_data, aes(x=variable.sites)) +
-  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+msc_sim_var_dist = ggplot(msc_sim_data, aes(x=variable.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("200 MSC simulated loci") +
   xlab("# variable sites") +
   ylab("# loci") +
   bartheme()
 
-var_dists = plot_grid(sim_var_dist, ratite_var_dist, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
+ratite_var_dist = ggplot(ratite_data, aes(x=variable.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("2000 ratite loci") +
+  xlab("# variable sites") +
+  ylab("# loci") +
+  bartheme()
+
+var_dists = plot_grid(sim_var_dist, msc_sim_var_dist, ratite_var_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
 print(var_dists)
 
 ```
 
 ## Informative sites per locus
 
-```{r inf-site-dists, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+```{r inf-site-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
 sim_inf_dist = ggplot(sim_data, aes(x=informative.sites)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
@@ -135,6 +149,14 @@ sim_inf_dist = ggplot(sim_data, aes(x=informative.sites)) +
   bartheme()
 #print(var_dist)
 
+msc_sim_inf_dist = ggplot(msc_sim_data, aes(x=informative.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# informative sites") +
+  ylab("# loci") +
+  bartheme()
+
 ratite_inf_dist = ggplot(ratite_data, aes(x=informative.sites)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
@@ -142,14 +164,14 @@ ratite_inf_dist = ggplot(ratite_data, aes(x=informative.sites)) +
   ylab("# loci") +
   bartheme()
 
-inf_dists = plot_grid(sim_inf_dist, ratite_inf_dist, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
+inf_dists = plot_grid(sim_inf_dist, msc_sim_inf_dist, ratite_inf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
 print(inf_dists)
 
 ```
 
 ## Variable sites vs. informative sites
 
-```{r var-inf-site-cors, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+```{r var-inf-site-cors, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
 sim_var_inf_cor = ggplot(sim_data, aes(x=variable.sites, y=informative.sites)) +
   geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1)) +
   geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
@@ -160,6 +182,15 @@ sim_var_inf_cor = ggplot(sim_data, aes(x=variable.sites, y=informative.sites)) +
   bartheme()
 #print(var_dist)
 
+msc_sim_var_inf_cor = ggplot(msc_sim_data, aes(x=variable.sites, y=informative.sites)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# variable sites") +
+  ylab("# informative sites") +
+  bartheme()
+
 ratite_var_inf_cor = ggplot(ratite_data, aes(x=variable.sites, y=informative.sites)) +
   geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=1)) +
   geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
@@ -168,14 +199,14 @@ ratite_var_inf_cor = ggplot(ratite_data, aes(x=variable.sites, y=informative.sit
   ylab("# informative sites") +
   bartheme()
 
-var_inf_cors = plot_grid(sim_var_inf_cor, ratite_var_inf_cor, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
+var_inf_cors = plot_grid(sim_var_inf_cor, msc_sim_var_inf_cor, ratite_var_inf_cor, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
 print(var_inf_cors)
 
 ```
 
 ## Average sCF per locus
 
-```{r scf-dists, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+```{r scf-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
 sim_scf_dist = ggplot(sim_data, aes(x=node.scf.avg)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
@@ -185,6 +216,14 @@ sim_scf_dist = ggplot(sim_data, aes(x=node.scf.avg)) +
   bartheme()
 #print(var_dist)
 
+msc_sim_scf_dist = ggplot(msc_sim_data, aes(x=node.scf.avg)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("Avg. sCF") +
+  ylab("# loci") +
+  bartheme()
+
 ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
@@ -192,14 +231,24 @@ ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
   ylab("# loci") +
   bartheme()
 
-scf_dists = plot_grid(sim_scf_dist, ratite_scf_dist, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
+scf_dists = plot_grid(sim_scf_dist, msc_sim_scf_dist, ratite_scf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
 print(scf_dists)
 
+
+
+cat(paste("# Avg. (simulated): ", mean(sim_data$node.scf.avg)))
+cat(paste("# Median (simulated): ", median(sim_data$node.scf.avg)))
+
+cat(paste("# Avg. (MSC simulated): ", mean(msc_sim_data$node.scf.avg)))
+cat(paste("# Median (MSC simulated): ", median(msc_sim_data$node.scf.avg)))
+
+cat(paste("# Avg. (ratite): ", mean(ratite_data$node.scf.avg, na.rm=T)))
+cat(paste("# Median (ratite): ", median(ratite_data$node.scf.avg, na.rm=T)))
 ```
 
 ## Informative sites vs. sCF
 
-```{r inf-sites-scf-cors, out.width="75%", fig.align = "center", warning=FALSE, fig.height=4}
+```{r inf-sites-scf-cors, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
 sim_inf_scf_cor = ggplot(sim_data, aes(x=informative.sites, y=node.scf.avg)) +
   geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1)) +
   geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
@@ -210,6 +259,15 @@ sim_inf_scf_cor = ggplot(sim_data, aes(x=informative.sites, y=node.scf.avg)) +
   bartheme()
 #print(var_dist)
 
+msc_sim_inf_scf_cor = ggplot(msc_sim_data, aes(x=informative.sites, y=node.scf.avg)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=2)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# informative sites") +
+  ylab("Avg. sCF") +
+  bartheme()
+
 ratite_inf_scf_cor = ggplot(ratite_data, aes(x=informative.sites, y=node.scf.avg)) +
   geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=1)) +
   geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
@@ -218,14 +276,14 @@ ratite_inf_scf_cor = ggplot(ratite_data, aes(x=informative.sites, y=node.scf.avg
   ylab("Avg. sCF") +
   bartheme()
 
-inf_scf_cors = plot_grid(sim_inf_scf_cor, ratite_inf_scf_cor, ncol=2, labels=c("500 simulated loci", "2000 ratite loci"), label_size=12)
+inf_scf_cors = plot_grid(sim_inf_scf_cor, msc_sim_inf_scf_cor, ratite_inf_scf_cor, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
 print(inf_scf_cors)
 
 ```
 
 ## Distribution of rho (simulated data only)
 
-```{r sim-rho-dist, out.width="50%", fig.align = "center", warning=FALSE}
+```{r sim-rho-dist, out.width="75%", fig.align = "center", warning=FALSE, fig.height=3}
 sim_rho_dist = ggplot(sim_data, aes(x=rho)) +
   geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=100, color="#999999") +
   scale_y_continuous(expand=c(0,0)) +
@@ -233,14 +291,24 @@ sim_rho_dist = ggplot(sim_data, aes(x=rho)) +
   ylab("# loci") +
   bartheme()
 
-print(sim_rho_dist)
+msc_sim_rho_dist = ggplot(msc_sim_data, aes(x=rho)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), bins=100, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("rho") +
+  ylab("# loci") +
+  bartheme()
+
+rho_dists = plot_grid(sim_rho_dist, msc_sim_rho_dist, ncol=2, labels=c("500 simulated loci", "200 MSC simulated loci"), label_size=8)
+print(rho_dists)
 print(paste("# Avg. rho: ", mean(sim_data$rho)))
 print(paste("# Median rho: ", median(sim_data$rho)))
+print(paste("# Avg.  (MSC): ", mean(msc_sim_data$rho)))
+print(paste("# Median rho (MSC): ", median(msc_sim_data$rho)))
 ```
 
 ## Rho vs. informative sites (simulated data only)
 
-```{r rho-inf-sites-cor, out.width="50%", fig.align = "center", warning=FALSE}
+```{r rho-inf-sites-cor, out.width="75%", fig.align = "center", warning=FALSE, fig.height=3}
 sim_rho_inf_cor = ggplot(sim_data, aes(x=rho, y=informative.sites)) +
   geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1)) +
   geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
@@ -250,7 +318,17 @@ sim_rho_inf_cor = ggplot(sim_data, aes(x=rho, y=informative.sites)) +
   ylab("# informative sites") +
   bartheme()
 
-print(sim_rho_inf_cor)
+msc_sim_rho_inf_cor = ggplot(msc_sim_data, aes(x=rho, y=informative.sites)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=2)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("rho") +
+  ylab("# informative sites") +
+  bartheme()
+
+rho_inf_cors = plot_grid(sim_rho_inf_cor, msc_sim_rho_inf_cor, ncol=2, labels=c("500 simulated loci", "200 MSC simulated loci"), label_size=8)
+print(rho_inf_cors)
 
 ```
 
