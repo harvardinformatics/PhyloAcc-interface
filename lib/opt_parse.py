@@ -32,7 +32,7 @@ def optParse(globs):
     parser.add_argument("-t", dest="targets", help="Tip labels in the input tree to be used as target species. Enter multiple labels separated by semi-colons (;). REQUIRED.", default=False);
     parser.add_argument("-c", dest="conserved", help="Tip labels in the input tree to be used as conserved species. Enter multiple labels separated by semi-colons (;). Any species not specified in -t or -g will be inferred as conserved.", default=False);
     parser.add_argument("-g", dest="outgroup", help="Tip labels in the input tree to be used as outgroup species. Enter multiple labels separated by semi-colons (;).", default=False);
-    # Phylo options
+    # Phylo options 
     
     parser.add_argument("-burnin", dest="burnin", help="The number of steps to be discarded in the Markov chain as burnin. Default: 500", default=False);
     parser.add_argument("-mcmc", dest="mcmc", help="The total number of steps in the Markov chain. Default: 1000", default=False);
@@ -42,9 +42,14 @@ def optParse(globs):
     parser.add_argument("-path", dest="phyloacc_path", help="The path to the PhyloAcc binary. Default: PhyloAcc", default=False);
     # Dependency paths
     ## Note: For now we will likely need three dependency paths for the models, but eventually these should all be consolidated
-    parser.add_argument("-p", dest="num_procs", help="The total number of processes that PhyloAcc can spawn. Should be set to the number of expected threads available. Default: 1.", type=int, default=1);
+    parser.add_argument("-p", dest="num_procs", help="The total number of processes that PhyloAcc can spawn. Should be set to the number of expected threads available. This is also the number of threads the interface will use to calculate concordance factors. Default: 1.", type=int, default=1);
     parser.add_argument("-j", dest="num_jobs", help="The number of jobs (loci) to run in parallel. Must be less than or equal to the total processes (-p). Default: 1.", type=int, default=1);
     # User params
+    parser.add_argument("-part", dest="cluster_part", help="The partition or list of partitions (separated by commas) on which to run PhyloAcc jobs.", default=False);
+    parser.add_argument("-nodes", dest="cluster_nodes", help="The number of nodes on the specified partition to submit jobs to. Default: 1.", default=False);
+    parser.add_argument("-mem", dest="cluster_mem", help="The max memory for each job in GB. Default: 4.", default=False);
+    parser.add_argument("-time", dest="cluster_time", help="The time in hours to give each job. Default: 1.", default=False);
+    # Cluster options
     parser.add_argument("--labeltree", dest="labeltree", help="Simply reads the tree from the input mod file (-m), labels the internal nodes, and exits.", action="store_true", default=False);
     parser.add_argument("--overwrite", dest="ow_flag", help="Set this to overwrite existing files.", action="store_true", default=False);
     # User options
@@ -171,6 +176,19 @@ def optParse(globs):
         os.makedirs(globs['outdir']);
     # Main output dir
 
+    globs['job-dir'] = os.path.join(globs['outdir'], "phyloacc-job-files");
+    if not os.path.isdir(globs['job-dir']) and not globs['norun']:
+        os.makedirs(globs['job-dir']);
+    # Main job file dir
+
+    job_sub_dirs = { 'job-alns' : 'alns', 'job-cfgs' : 'cfgs', 'job-bed' : 'bed', 'job-smk' : 'snakemake', 'job-out' : 'phyloacc-output' };
+    if not globs['norun']:
+        for subdir in job_sub_dirs:
+            globs[subdir] = os.path.join(globs['job-dir'], job_sub_dirs[subdir]);
+            if not os.path.isdir(globs[subdir]):
+                os.makedirs(globs[subdir]);
+    # Job output subdirs    
+
     globs['run-name'] = os.path.basename(os.path.normpath(globs['outdir']));
     globs['logfilename'] = os.path.join(globs['outdir'], globs['run-name'] + ".log");
     # Log file
@@ -181,6 +199,33 @@ def optParse(globs):
         PC.errorOut("OP10", "The specified number of jobs (-j) should not exceed the specified number of processes (-p).", globs);
     globs['procs-per-job'] = math.floor(globs['num-procs'] / globs['num-jobs'])
     # Determine resource allocation
+
+    if not args.cluster_part:
+        PC.errorOut("OP11", "At least one cluster partition must be specified with -part.", globs);
+    else:
+        globs['partition'] = args.cluster_part;
+    # Cluster partition option (required)
+
+    if args.cluster_nodes:
+        if not PC.isPosInt(args.cluster_nodes):
+            PC.errorOut("OP12", "The number of nodes specified (-nodes) must be a positive integer.", globs);
+        else:
+            globs['num-nodes'] = args.cluster_nodes;
+    # Cluster memory option
+
+    if args.cluster_mem:
+        if not PC.isPosInt(args.cluster_mem):
+            PC.errorOut("OP13", "The specified cluster memory (-mem) must be a positive integer in GB.", globs);
+        else:
+            globs['mem'] = args.cluster_mem;
+    # Cluster memory option
+
+    if args.cluster_time:
+        if not PC.isPosInt(args.cluster_time):
+            PC.errorOut("OP14", "The specified cluster time (-time) must be a positive integer in hours.", globs);
+        else:
+            globs['time'] = args.cluster_time + ":00:00";
+    # Cluster memory option
 
     if args.quiet_flag:
         globs['quiet'] = True;
@@ -228,6 +273,7 @@ def startProg(globs):
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Tree read from mod file:", pad) + globs['tree-string']);
 
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Output directory:", pad) + globs['outdir']);
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# PhyloAcc run directory:", pad) + globs['job-dir']);
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Log file:", pad) + os.path.basename(globs['logfilename']));
     # Input/Output
     #######################
@@ -250,6 +296,17 @@ def startProg(globs):
     if globs['outgroup']:
         PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Outgroups (-g)", pad) + ";".join(globs['outgroup']));
     # Species groups
+    #######################
+
+    PC.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 125);
+    PC.printWrite(globs['logfilename'], globs['log-v'], "# CLUSTER OPTIONS:");    
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Option", pad) + PC.spacedOut("Setting", opt_pad));
+
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Partition(s)", pad) + globs['partition']);
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Number of nodes", pad) + globs['num-nodes']);
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Max mem per job (gb)", pad) + globs['mem']);
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Time per job", pad) + globs['time']); 
+    # Cluster options
     #######################
 
     PC.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 125);
@@ -279,7 +336,7 @@ def startProg(globs):
 
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Processes (-p)", pad) + 
                 PC.spacedOut(str(globs['num-procs']), opt_pad) + 
-                "PhyloAcc will use this many total processes.");
+                "PhyloAcc and this interface will use this many total processes.");
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Jobs (-j)", pad) + 
                 PC.spacedOut(str(globs['num-jobs']), opt_pad) + 
                 "PhyloAcc will spawn this many jobs in parallel.");

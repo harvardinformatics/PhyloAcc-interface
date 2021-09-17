@@ -84,6 +84,20 @@ def init():
         'procs-per-job' : 1,
         # Number of jobs/threads to use
 
+        'partition' : False,
+        'num-nodes' : "1",
+        'mem' : "4",
+        'time' : "1:00:00",
+        # Cluster options
+
+        'job-dir' : '',
+        'job-alns' : '',
+        'job-cfgs' : '',
+        'job-bed' : '',
+        'job-smk' : '',
+        'job-out' : '',
+        # Job directories
+
         'label-tree' : False,
         'info' : False,
         'norun' : False,

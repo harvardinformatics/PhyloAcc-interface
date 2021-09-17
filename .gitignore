@@ -12,3 +12,5 @@ data/
 
 job-scripts/
 job_scripts/
+
+.snakemake

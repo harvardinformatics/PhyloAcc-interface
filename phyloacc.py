@@ -12,6 +12,13 @@
 
 # phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed.gz -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -o test-real -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 12 --overwrite
  
+# time -p python phyloacc.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -p 24 -j 6 --overwrite
+# real 87.93
+# user 1614.63
+# sys 5.26
+
+#############################################################################
+
 import sys
 import os
 import lib.core as PC
@@ -20,6 +27,7 @@ import lib.opt_parse as OP
 import lib.seq as SEQ
 import lib.tree as TREE
 import lib.output as OUT
+import lib.batch as BATCH
 
 #############################################################################
 
@@ -73,6 +81,12 @@ if __name__ == '__main__':
 
     globs = OUT.writeSCFStats(globs);
     # Write out the sCF summary stats
+
+    globs = BATCH.genJobFiles(globs);
+    # Generates the locus specific job files (aln, bed, config, etc.) for phyloacc
+
+    globs = BATCH.writeSnakemake(globs);
+    # Generates the snakemake config and cluster profile
 
     PC.endProg(globs);
 

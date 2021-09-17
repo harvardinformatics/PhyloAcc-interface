@@ -219,7 +219,7 @@ def readSeq(globs):
         
         step = "Detecting compression of seq files";
         step_start_time = PC.report_step(globs, step, False, "In progress...");
-        globs = PC.detectCompression(aln_files[0], globs);
+        globs['input-compression'] = PC.detectCompression(aln_files[0]);
         if globs['input-compression'] == "none":
             step_start_time = PC.report_step(globs, step, step_start_time, "Success: No compression detected");
         else:

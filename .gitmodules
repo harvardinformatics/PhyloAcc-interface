@@ -1,3 +1,6 @@
 [submodule "PhyloAcc"]
 	path = PhyloAcc
 	url = https://github.com/xyz111131/PhyloAcc
+[submodule "PhyloAcc-GT2"]
+	path = PhyloAcc-GT2
+	url = git@github.com:xyz111131/PhyloAcc-GT2.git

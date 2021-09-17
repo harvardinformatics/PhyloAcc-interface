@@ -225,7 +225,7 @@ def report_step(globs, step, step_start_time, step_status, start=False):
             sys.stdout.write("".join(out_line) + "\n");
             sys.stdout.flush();
             #print(file_col_widths);
-            file_line = [ spacedOut(str(file_line[i]), file_col_widths[i]) for i in range(len(file_line)) ];
+            file_line = [ spacedOut(str(file_line[i]), col_widths[i]) for i in range(len(file_line)) ];
             printWrite(globs['logfilename'], 3, "".join(file_line));
     return cur_time;
 
@@ -244,6 +244,7 @@ def endProg(globs):
     endtime = timeit.default_timer();
     totaltime = endtime - globs['starttime'];
 
+    printWrite(globs['logfilename'], globs['log-v'], "# " + "=" * 175);
     printWrite(globs['logfilename'], globs['log-v'], "#\n# Done!");
     printWrite(globs['logfilename'], globs['log-v'], "# The date and time at the end is: " + getDateTime());
     printWrite(globs['logfilename'], globs['log-v'], "# Total execution time:            " + str(round(totaltime,3)) + " seconds.");
@@ -269,9 +270,16 @@ def endProg(globs):
         printWrite(globs['logfilename'], globs['log-v'], "#\n# ERROR: NON-ZERO EXIT STATUS.");
         printWrite(globs['logfilename'], globs['log-v'], "# ERROR: PHYLOACC FINISHED WITH ERRORS.");
         printWrite(globs['logfilename'], globs['log-v'], "# ERROR: PLEASE CHECK THE LOG FILE FOR MORE INFO: " + globs['logfilename'] + "\n#");
+    else:
+        printWrite(globs['logfilename'], globs['log-v'], "#\n# PhyloAcc job files successfully generated");
+        printWrite(globs['logfilename'], globs['log-v'], "# Run the following command from the Phyloacc-interface directory:\n\n");
+        phyloacc_cmd = "snakemake -p -s phyloacc.smk --configfile " + globs['smk-config'] + " --profile " + globs['profile-dir'] + " --dryrun"
+        printWrite(globs['logfilename'], globs['log-v'], phyloacc_cmd + "\n\n");
+        printWrite(globs['logfilename'], globs['log-v'], "# Then, if everything looks right, remove --dryrun to execute");
+        printWrite(globs['logfilename'], globs['log-v'], "# You may also want to start your favorite terminal multiplexer (e.g. screen, tmux)");
 
-    print("# " + "=" * 125);
-    printWrite(globs['logfilename'], 3, "# " + "=" * 150);
+    #print("# " + "=" * 125);
+    printWrite(globs['logfilename'], globs['log-v'], "# " + "=" * 175);
     printWrite(globs['logfilename'], globs['log-v'], "#");
     sys.exit(globs['exit-code']);
 
