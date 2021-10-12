@@ -3,6 +3,7 @@
 # Gregg Thomas
 #############################################################################
 
+import os
 import re
 import random
 import itertools
@@ -350,7 +351,9 @@ def sampleQuartets(globs, root_desc):
 
 #############################################################################
 
-def locusSCF(locus, aln, quartets, tree_dict, skip_chars):
+def locusSCF(locus_item):
+    locus, aln, quartets, tree_dict, skip_chars = locus_item
+    # Unpack the data for the current locus
 
     aln_len = len(aln[list(aln.keys())[0]]);
     # Get the alignment length from the first sequence
@@ -508,11 +511,18 @@ def scf(globs):
         # Cannot calculate sCF for tips, the root, or node descendant from the root
 
         globs['scf'][node] = { 'variable-sites' : 0, 'decisive-sites' : 0, 'concordant-sites' : 0, 'quartet-scf-sum' : 0,
-                                    'num-quartets' : 0, 'avg-quartet-scf' : "NA" };
+                                    'total-quartets' : 0, 'avg-quartet-scf' : "NA" };
     # Initialize the dictionary to calculate average sCF per node across all loci
 
-    with mp.Pool(processes=globs['num-procs']) as pool:
-        for result in pool.starmap(locusSCF, ((locus, globs['alns'][locus], globs['quartets'], globs['tree-dict'], globs['skip-chars']) for locus in globs['alns'])):
+    if globs['qstats']:
+        qstats_file = os.path.join(globs['outdir'], "quartet-stats.csv");
+        qfile = open(qstats_file, "w");
+        headers = ["locus","node","quartet","variable-sites","decisive-sites","concordant-sites"];
+        qfile.write(",".join(headers) + "\n");
+    # For --qstats, creates and opens a file to write site counts for each quartet within the pool loop
+
+    with globs['scf-pool'] as pool:
+        for result in pool.imap_unordered(locusSCF, ((locus, globs['alns'][locus], globs['quartets'], globs['tree-dict'], globs['skip-chars']) for locus in globs['alns'])):
             # Loop over every locus in parallel to calculate sCF per node
 
             locus_scf, scf_sum, num_nodes, scf_avg, locus, quartet_scores = result;
@@ -525,6 +535,13 @@ def scf(globs):
 
             for node in quartet_scores:
                 for q in quartet_scores[node]:
+
+                    if globs['qstats']:
+                        q_str = ";".join(q[0]) + ";" + ";".join(q[1]);
+                        outline = [locus, node, q_str] + [str(quartet_scores[node][q][col]) for col in headers[3:]];
+                        qfile.write(",".join(outline) + "\n");
+                    # For --qstats, writes the quartet stats to a file for the current quartet
+
                     globs['scf'][node]['variable-sites'] += quartet_scores[node][q]['variable-sites'];
                     globs['scf'][node]['decisive-sites'] += quartet_scores[node][q]['decisive-sites'];
                     globs['scf'][node]['concordant-sites'] += quartet_scores[node][q]['concordant-sites'];
@@ -532,7 +549,7 @@ def scf(globs):
 
                     if quartet_scores[node][q]['decisive-sites'] != 0:
                         globs['scf'][node]['quartet-scf-sum'] += quartet_scores[node][q]['concordant-sites'] / quartet_scores[node][q]['decisive-sites'];
-                        globs['scf'][node]['num-quartets'] += 1;
+                        globs['scf'][node]['total-quartets'] += 1;
                     # If there are decisive sites, calculate sCF for this quartet
             # For every quartet in every node, calculate sCF and sum up the number of sites in order to average
             # across nodes later
@@ -545,9 +562,13 @@ def scf(globs):
     step = "Averaging sCF per node";
     step_start_time = PC.report_step(globs, step, False, "In progress...");
     for node in globs['scf']:
-        globs['scf'][node]['avg-quartet-scf'] = globs['scf'][node]['quartet-scf-sum'] / globs['scf'][node]['num-quartets'];
+        globs['scf'][node]['avg-quartet-scf'] = globs['scf'][node]['quartet-scf-sum'] / globs['scf'][node]['total-quartets'];
     step_start_time = PC.report_step(globs, step, step_start_time, "Success");
     # For every node, average the sCFs per quartet across all loci
+
+    if globs['qstats']:
+        qfile.close()
+    # For --qstats, closes the quartet stats file.
 
     return globs;
     

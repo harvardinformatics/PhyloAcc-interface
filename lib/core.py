@@ -8,6 +8,7 @@ import os
 import timeit
 import datetime
 import subprocess
+from itertools import islice
 
 #############################################################################
 
@@ -116,6 +117,14 @@ def detectCompression(filename):
 
 #############################################################################
 
+def dictChunk(d, chunksize):
+# Function to process a dictionary in specified chunks and yield the result
+    iter_d = iter(d)
+    for i in range(0, len(d), chunksize):
+        yield { key:d[key] for key in islice(iter_d, chunksize) }
+
+#############################################################################
+
 def getOutTime():
 # Function to get the date and time in a certain format.
     return datetime.datetime.now().strftime("%m-%d-%Y.%I-%M-%S");
@@ -140,17 +149,17 @@ def getDateTime():
 
 #############################################################################
 
-def isPosInt(numstr):
+def isPosInt(numstr, default=False):
 # Check if a string is a positive integer
     try:
         num = int(numstr);
     except:
-        return False;
+        return default;
 
     if num > 0:
         return num;
     else:
-        return False;
+        return default;
 
 #############################################################################
 
@@ -273,7 +282,8 @@ def endProg(globs):
     else:
         printWrite(globs['logfilename'], globs['log-v'], "#\n# PhyloAcc job files successfully generated");
         printWrite(globs['logfilename'], globs['log-v'], "# Run the following command from the Phyloacc-interface directory:\n\n");
-        phyloacc_cmd = "snakemake -p -s phyloacc.smk --configfile " + globs['smk-config'] + " --profile " + globs['profile-dir'] + " --dryrun"
+        phyloacc_cmd = "snakemake -p -s " + globs['smk'] + " --configfile " + globs['smk-config'] + " --profile " + globs['profile-dir'] + " --dryrun"
+        ## TODO: Should commands have absolute paths?
         printWrite(globs['logfilename'], globs['log-v'], phyloacc_cmd + "\n\n");
         printWrite(globs['logfilename'], globs['log-v'], "# Then, if everything looks right, remove --dryrun to execute");
         printWrite(globs['logfilename'], globs['log-v'], "# You may also want to start your favorite terminal multiplexer (e.g. screen, tmux)");

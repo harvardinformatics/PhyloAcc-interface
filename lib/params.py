@@ -79,16 +79,27 @@ def init():
         'phyloacc-gt' : '',
         # Dependency paths
 
+        'batch-size' : 50,
+        'num-batches' : 0,
+        # Batch variables
+
         'num-procs' : 1,
+        # Number of procs for this script to use
+
+        'phyloacc-procs' : 1,
         'num-jobs' : 1,
         'procs-per-job' : 1,
-        # Number of jobs/threads to use
+        # Number of jobs/procs for PhyloAcc to use
 
         'partition' : False,
         'num-nodes' : "1",
         'mem' : "4",
         'time' : "1:00:00",
         # Cluster options
+
+        'aln-pool' : False,
+        'scf-pool' : False,
+        # Process pools
 
         'job-dir' : '',
         'job-alns' : '',
@@ -100,7 +111,6 @@ def init():
 
         'label-tree' : False,
         'info' : False,
-        'norun' : False,
         'dryrun' : False,
         'quiet' : False,
         # Other user options
@@ -118,6 +128,8 @@ def init():
         'stepstarttime' : 0,
         'pids' : "",
         'psutil' : True,
+        'qstats' : False,
+        'norun' : False,
         'debug' : False,
         'nolog' : False,
         # Internal stuff

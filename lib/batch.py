@@ -5,6 +5,7 @@
 
 import os
 import lib.core as PC
+import lib.templates as TEMPLATES
 
 #############################################################################
 
@@ -15,64 +16,110 @@ def genJobFiles(globs):
     step_start_time = PC.report_step(globs, step, False, "In progress...");
     # Status update
 
-    jobs = 0;
-    for aln in globs['alns']:
-    # For every input alignment, write an alignment file, config, file, bed, file and
-    # output directory.
-    ## TODO: Parallelize?
-    ## TODO: Don't need to re-write individual aligns if that is how input is provided...
+    batch_num = 0;
+    for batch in PC.dictChunk(globs['alns'], globs['batch-size']):
+    # Split the sequence dictionary by batches and yield the result here
 
-        cur_out_dir = os.path.join(globs['job-out'], aln + "-phyloacc-out");
+        batch_num += 1;
+        batch_num_str = str(batch_num);
+        # Batch counting
+
+        cur_out_dir = os.path.join(globs['job-out'], batch_num_str + "-phyloacc-out");
         if not os.path.isdir(cur_out_dir):
             os.makedirs(cur_out_dir);
-        # Make the phyloacc output directory for the current alignment
+        # Make the phyloacc output directory for the current batch
 
-        aln_len = globs['aln-stats'][aln]['length']
-        # Get the alignment length for the bed file
+        batch_concat = { label : "" for label in globs['tree-tips'] };
+        # Dictionary to concatenate alignments for the current batch
 
-        cur_aln_file = os.path.join(globs['job-alns'], aln + ".fa");
+        batch_aln_list = [];
+        # As we concatenate, add the alignment name to this list so we can go through
+        # in the same order as we make the bed file
+
+        for aln in batch:
+            #print(aln);
+            batch_aln_list.append(aln);
+            for label in globs['tree-tips']:
+                batch_concat[label] += batch[aln][label];
+            # May need a check here for missing sequences
+        # Concatenate alignments in the current batch together
+
+        cur_aln_file = os.path.join(globs['job-alns'], batch_num_str + ".fa");
         with open(cur_aln_file, "w") as alnfile:
-            for spec in globs['alns'][aln]:
+            for spec in globs['tree-tips']:
                 alnfile.write(">" + spec + "\n");
-                alnfile.write(globs['alns'][aln][spec] + "\n");
-        # Write the current alignment to file
-        
-        cur_bed_file = os.path.join(globs['job-bed'], aln + ".bed");
+                alnfile.write(batch_concat[spec] + "\n");
+        # Write the current concatenated alignment to file
+
+        len_sum = 0;
+        # Keeps track of the last coordinate written in the bed file
+
+        cur_bed_file = os.path.join(globs['job-bed'], batch_num_str + ".bed");
         with open(cur_bed_file, "w") as bedfile:
-            outline = [aln, "0", str(aln_len), aln];
-            bedfile.write("\t".join(outline));   
+            for aln in batch_aln_list:
+
+                aln_len = globs['aln-stats'][aln]['length'];
+                # Get the alignment length for the bed file
+
+                end_coord = len_sum + aln_len;
+                # Get the end coordinate of the current locus in the concatenated alignment by
+                # adding the length to the previous length sum
+
+                outline = [aln, str(len_sum), str(end_coord), aln];
+                bedfile.write("\t".join(outline) + "\n");
+                # Write the info for the current locus
+
+                len_sum += aln_len;
+                # Add the length to the length sum as the start coordinate for the next locus
         # Write a bed file that contains all coordinates for the current alignment
-        # Only need to do this because the PhyloAcc config file requires a SEG_FILE
-        
-        cur_cfg_file = os.path.join(globs['job-cfgs'], aln + ".cfg");
+
+        cur_cfg_file = os.path.join(globs['job-cfgs'], batch_num_str + ".cfg");
         with open(cur_cfg_file, "w") as cfgfile:
-            cfgfile.write("PHYTREE_FILE " + os.path.abspath(globs['mod-file']) + "\n");
-            cfgfile.write("SEG_FILE " + os.path.abspath(cur_bed_file) + "\n");
-            cfgfile.write("ALIGN_FILE " + os.path.abspath(cur_aln_file) + "\n");
-            cfgfile.write("RESULT_FOLDER " + os.path.abspath(cur_out_dir) + "\n");
-            cfgfile.write("PREFIX " + aln + "\n");
-            cfgfile.write("BURNIN " + str(globs['burnin']) + "\n");
-            cfgfile.write("MCMC " + str(globs['mcmc']) + "\n");
-            cfgfile.write("CHAIN " + str(globs['chain']) + "\n");
-            cfgfile.write("TARGETSPECIES " + str(globs['targets']) + "\n");
-            cfgfile.write("OUTGROUP " + str(globs['outgroup']) + "\n");
-            cfgfile.write("CONSERVE " + str(globs['conserved']) + "\n");
-            cfgfile.write("GAPCHAR -\n");
-            cfgfile.write("NUM_THREAD " + str(globs['procs-per-job']) + "\n");
-            cfgfile.write("VERBOSE 1");
-        # Write the phyloacc config file for the current alignment
+            cfgfile.write(TEMPLATES.phyloaccConfig().format(mod_file=os.path.abspath(globs['mod-file']),
+                                                                    bed_file=os.path.abspath(cur_bed_file),
+                                                                    aln_file=os.path.abspath(cur_aln_file),
+                                                                    outdir=os.path.abspath(cur_out_dir),
+                                                                    batch=batch_num_str,
+                                                                    burnin=str(globs['burnin']),
+                                                                    mcmc=str(globs['mcmc']),
+                                                                    chain=str(globs['chain']),
+                                                                    targets= ";".join(globs['targets']),
+                                                                    outgroup=";".join(globs['outgroup']),
+                                                                    conserved=";".join(globs['conserved']),
+                                                                    procs_per_job=str(globs['procs-per-job'])
+                                                                    ))
+        # Write the phyloacc config file for the current concatenated alignment
+    ## End batch loop
 
-        jobs += 1;
-        # Iterate the number of jobs successfully written for the status update
+    step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(batch_num) + " jobs written");
+    # Status update
 
-    step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(jobs) + " jobs written");
-    # Status update       
+    globs['num-batches'] = batch_num;
+    # Can only compute this here after we've split the number of input alignments by batch size
 
     return(globs);
 
-#############################################################################
+############################################################################# 
 
 def writeSnakemake(globs):
+# A function to write the various snakemake files
+
+    step = "Writing Snakemake file";
+    step_start_time = PC.report_step(globs, step, False, "In progress...");
+    # Status update
+    
+    globs['smk'] = os.path.join(globs['job-smk'], "run_phyloacc.smk");
+
+    with open(globs['smk'], "w") as smkfile:
+        smkfile.write(TEMPLATES.snakemake().format(cmd=globs['call'],
+                                                       dt=PC.getDateTime(),
+                                                       path=os.path.abspath(globs['phyloacc'])
+                                                       ))
+
+    step_start_time = PC.report_step(globs, step, step_start_time, "Success: Snakemake file written");
+    # Status update  
+
+    ####################
 
     step = "Writing Snakemake config file";
     step_start_time = PC.report_step(globs, step, False, "In progress...");
@@ -81,12 +128,15 @@ def writeSnakemake(globs):
     globs['smk-config'] = os.path.join(globs['job-smk'], "phyloacc-config.yaml");
 
     with open(globs['smk-config'], "w") as configfile:
-        configfile.write("input_directory: " + os.path.abspath(globs['job-cfgs']) + "\n");
-        configfile.write("output_directory: " + os.path.abspath(globs['job-out']) + "\n");
-        configfile.write("locus_list: " + str(list(globs['alns'].keys())) + "\n");
+        configfile.write(TEMPLATES.snakemakeConfig().format(indir=os.path.abspath(globs['job-cfgs']),
+                                                            outdir=os.path.abspath(globs['job-out']),
+                                                            batches=str(list(range(1, globs['num-batches']+1)))
+                                                            ))
 
     step_start_time = PC.report_step(globs, step, step_start_time, "Success: Snakemake config written");
     # Status update  
+
+    ####################
 
     step = "Writing Snakemake cluster profile";
     step_start_time = PC.report_step(globs, step, False, "In progress...");
@@ -101,27 +151,15 @@ def writeSnakemake(globs):
 
     cluster_logdir = os.path.abspath(os.path.join(globs['job-dir'], "slurm-logs"));
 
-    with open(profile_file, "w") as pro_file:
-        pro_file.write("jobs: " + str(globs['num-jobs']) + "\n");
-        pro_file.write("cluster:\n");
-        pro_file.write("  mkdir -p " + cluster_logdir + "/{rule}/ &&\n");
-        pro_file.write("  sbatch\n");
-        pro_file.write("  --partition={resources.partition}\n");
-        pro_file.write("  --nodes={resources.nodes}\n");
-        pro_file.write("  --cpus-per-task=" + str(globs['procs-per-job']) + "\n");
-        pro_file.write("  --job-name={rule}-{wildcards}\n");
-        pro_file.write("  --mem={resources.mem}\n");
-        pro_file.write("  --time={resources.time}\n");
-        pro_file.write("  --output=" + cluster_logdir + "/{rule}/{rule}-{wildcards}-%j.out\n");
-        #pro_file.write("  --mail-type=END,FAIL\n");
-        pro_file.write("  --mail-user=gthomas@g.harvard.edu\n");
-        pro_file.write("default-resources:\n");
-        pro_file.write("  - partition='" + globs['partition'] + "'\n");
-        pro_file.write("  - nodes='" + globs['num-nodes'] + "'\n");
-        pro_file.write("  - mem='" + globs['mem'] + "g'\n");
-        pro_file.write("  - time='" + globs['time'] + "'\n");
-        pro_file.write("latency-wait: 30\n");
-        pro_file.write("verbose: true");
+    with open(profile_file, "w") as profile:
+        profile.write(TEMPLATES.snakemakeProfile().format(num_jobs=str(globs['num-jobs']),
+                                                          cluster_logdir=cluster_logdir,
+                                                          procs_per_job=str(globs['procs-per-job']),
+                                                          part=globs['partition'],
+                                                          num_nodes=globs['num-nodes'],
+                                                          mem=globs['mem'],
+                                                          time=globs['time']
+                                                        ))
 
     step_start_time = PC.report_step(globs, step, step_start_time, "Success: Snakemake profile written");
     # Status update     

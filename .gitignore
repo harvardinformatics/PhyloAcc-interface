@@ -14,3 +14,4 @@ job-scripts/
 job_scripts/
 
 .snakemake
+snakemake-template.smk

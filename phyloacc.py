@@ -8,14 +8,50 @@
 # Summer 2021
 #############################################################################
 
-# phyloacc.py -a PhyloAcc/Simulation_ratite/simu_500_200_diffr_2-1.fasta -b PhyloAcc/Simulation_ratite/simu_500_200_diffr_2-1.bed -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 12 --overwrite
-
-# phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed.gz -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -o test-real -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 12 --overwrite
- 
+# Simulated dataset:
 # time -p python phyloacc.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -p 24 -j 6 --overwrite
 # real 87.93
 # user 1614.63
 # sys 5.26
+
+# time -p python phyloacc.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -p 64 -j 4 --overwrite
+# real 49.00
+# user 2097.39
+# sys 17.08
+
+##########################
+
+# Real dataset:
+# 1000 loci:
+# time -p python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -i data/ratite_data/07_cnees/datasets/original_dataset_v2/ratited-ids-1000.txt -o test-real-1000 -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 32 -part 'holy-info,holy-cow,holy-smokes,shared' --overwrite
+# real 206.86
+# user 2335.62
+# sys 15.92
+
+# time -p python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -i data/ratite_data/07_cnees/datasets/original_dataset_v2/ratited-ids-2000.txt -o test-real-2000 -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 32 -part 'holy-info,holy-cow,holy-smokes,shared' --overwrite
+# real 290.53
+# user 4277.12
+# sys 25.56
+
+# time -p python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -i data/ratite_data/07_cnees/datasets/original_dataset_v2/ratite-ids-5000.txt -o test-real-5000 -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 32 -part 'holy-info,holy-cow,holy-smokes,shared' --overwrite
+# real 577.40
+# user 10476.72
+# sys 54.06
+
+# time -p python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -i data/ratite_data/07_cnees/datasets/original_dataset_v2/ratited-ids-10000.txt -o test-real-10000 -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 32 -part 'holy-info,holy-cow,holy-smokes,shared' --overwrite
+# real 1072.99
+# user 20932.03
+# sys 103.50
+
+# time -p python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -i data/ratite_data/07_cnees/datasets/original_dataset_v2/ratite-ids-50000.txt -o test-real-50000 -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 32 -part 'holy-info,holy-cow,holy-smokes,shared' --overwrite
+# real 5770.43
+# user 117375.58
+# sys 921.94
+
+# time -p python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -i data/ratite_data/07_cnees/datasets/original_dataset_v2/ratite-ids-100000.txt -o test-real-100000 -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -p 32 -part 'holy-info,holy-cow,holy-smokes,shared' --overwrite
+# real 10343.17
+# user 228212.60
+# sys 1788.44
 
 #############################################################################
 

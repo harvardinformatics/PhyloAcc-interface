@@ -252,17 +252,30 @@ def readSeq(globs):
 
 #############################################################################
 
-def locusAlnStats(locus, aln, skip_chars):
+def locusAlnStats(locus_item):
+    locus, aln, skip_chars = locus_item;
+    # Unpack the data for the current locus
+
     num_seqs = len(aln);
     aln_len = len(aln[list(aln.keys())[0]]);
 
     cur_stats = { 'num-seqs' : num_seqs, 'length' : aln_len, 'variable-sites' : 0, 
-                                        'informative-sites' : 0, 'num-sites-w-gap' : 0, 'num-sites-half-gap' : 0};
+                                        'informative-sites' : 0, 'num-sites-w-gap' : 0, 'num-sites-half-gap' : 0,
+                                        'num-seqs-half-gap' : 0 };
     # Initialize the stats dict for this locus
+
+    half_aln_len = aln_len / 2;
+    half_site_len = num_seqs / 2;
+    # Compute half the alignment length and half the site length for the current locus.
+    # Used to see if seqs and sites are half-gap or more
 
     for j in range(aln_len):
         site = "";
         for seq in aln:
+            if aln[seq][j].count("-") >= half_aln_len:
+                cur_stats['num-seqs-half-gap'] += 1;
+            # Count whether the current sequence is more than half gap
+
             site += aln[seq][j];
         # Get each allele from each sequence as the site
 
@@ -283,10 +296,10 @@ def locusAlnStats(locus, aln, skip_chars):
         if "-" in site:
             cur_stats['num-sites-w-gap'] += 1;
 
-            if site.count("-") >= len(site) / 2:
+            if site.count("-") >= half_site_len:
                 cur_stats['num-sites-half-gap'] += 1;
         # Count whether this site contains a gap and, if so, whether more than half the sequences are a gap
-    ## End site loop    
+    ## End site loop
 
     return locus, cur_stats;
 
@@ -296,9 +309,10 @@ def alnStats(globs):
     step = "Calculating alignment stats";
     step_start_time = PC.report_step(globs, step, False, "In progress...");
 
-    with mp.Pool(processes=globs['num-procs']) as pool:
-        for result in pool.starmap(locusAlnStats, ((locus, globs['alns'][locus], globs['skip-chars']) for locus in globs['alns'])):
-            # Loop over every locus in parallel to calculate stats
+    with globs['aln-pool'] as pool:
+        for result in pool.imap(locusAlnStats, ((locus, globs['alns'][locus], globs['skip-chars']) for locus in globs['alns'])):
+        # Loop over every locus in parallel to calculate stats
+        # Have to do it this way so it doesn't terminate the pool for sCF calculations
 
             globs['aln-stats'][result[0]] = result[1];
             # Unpack the current result

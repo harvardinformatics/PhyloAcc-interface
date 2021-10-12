@@ -38,16 +38,19 @@ def writeSCFStats(globs):
     step = "Writing: " + globs['scfstatsfile'];
     step_start_time = PC.report_step(globs, step, False, "In progress...");
 
-    headers = ["node","variable-sites","decisive-sites","concordant-sites","quartet-scf-sum","num-quartets","avg-quartet-scf"];
+    headers = ["node","variable-sites","decisive-sites","concordant-sites","quartet-scf-sum","num-quartets","total-quartets","avg-quartet-scf"];
 
     globs['scfstatsfile'] = os.path.join(globs['outdir'], globs['scfstatsfile']);
     with open(globs['scfstatsfile'], "w") as outfile:
+        outfile.write(",".join(headers) + "\n");
         first = True;
         for node in globs['scf']:
-            if first:
-                outfile.write(",".join(headers) + "\n");
-                first = False;
-                continue;
+            # if first:
+            #     outfile.write(",".join(headers) + "\n");
+            #     first = False;
+            #     continue;
+
+            globs['scf'][node]['num-quartets'] = len(globs['quartets'][node])
 
             outline = [node] + [ str(globs['scf'][node][header]) for header in headers if header != "node" ];
             outfile.write(",".join(outline) + "\n");
@@ -67,7 +70,7 @@ def writeSCFStats(globs):
     with open(globs['scftreefile'], "w") as outfile:
         outfile.write(labeled_scf_tree);
     step_start_time = PC.report_step(globs, step, step_start_time, "Success: sCF tree written");
-    globs['scf-tree-written'] = True;
+    globs['scf-tree-written'] = True;   
 
     return globs;
 
