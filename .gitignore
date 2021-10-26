@@ -10,7 +10,10 @@ lib/__pycache__/
 docs/scripts/lib/__pycache__/
 
 data/
+old/
 
 job-scripts/
 job_scripts/
 
+.snakemake
+snakemake-template.smk

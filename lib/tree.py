@@ -3,6 +3,7 @@
 # Gregg Thomas
 #############################################################################
 
+import os
 import re
 import random
 import itertools
@@ -11,23 +12,26 @@ import multiprocessing as mp
 from collections import Counter
 
 #############################################################################
-def treeParse(tree, debug=0):
-# The treeParse function takes as input a rooted phylogenetic tree with branch lengths and returns the tree with node labels and a
-# dictionary with usable info about the tree in the following format:
-# New (current) format:
-# node:[branch length (if present), ancestral node, node type, node label (if present)]
+def treeParse(tree, debug=False):
+# The treeParse function takes as input a rooted phylogenetic tree with or without branch lengths and labels and returns the tree with nodes
+# labeled in order for a post-order traversal and a dictionary with usable info about the tree in the following format:
+# treeParse node label : [ branch length, ancestral node, node type, node label ]
+#
+# If branch length or node label is not present, they will have "NA" as the value
+# node type can be one of: 'tip', 'internal', 'root'
+# treeParse node label is in the format <N>, with N being a positive integer
 
     tree = tree.strip();
     if tree[-1] != ";":
         tree += ";";
-    # Some string handling
+    # Some string handling to remove any extra lines in the tree string and add the semi-colon if not present
 
     nodes, bl, supports, ancs = {}, {}, {}, {};
     # Initialization of all the tracker dicts
 
     topology = remBranchLength(tree);
 
-    if debug == 1:
+    if debug:
         print("TOPOLOGY:", topology);
 
     nodes = {};
@@ -36,7 +40,7 @@ def treeParse(tree, debug=0):
     # nodes = { n : 'tip' for n in topology.replace("(","").replace(")","").replace(";","").split(",") };
     # Retrieval of the tip labels
 
-    if debug == 1:
+    if debug:
         print("NODES:", nodes);
 
     new_tree = "";
@@ -54,7 +58,7 @@ def treeParse(tree, debug=0):
     rootnode = node_label;
     # This labels the original tree as new_tree and stores the nodes and their types in the nodes dict
 
-    if debug == 1:
+    if debug:
         print("NEW TREE:", new_tree);
         print("TREE:", tree);
         print("NODES:", nodes);
@@ -72,7 +76,7 @@ def treeParse(tree, debug=0):
         z += 1;
     # This labels the topology with the same internal labels
 
-    if debug == 1:
+    if debug:
         print("TOPO:", topo);
         print("----------");
         print("TOPOLOGY:", topo);
@@ -80,10 +84,6 @@ def treeParse(tree, debug=0):
     for node in nodes:
         if node + node in new_tree:
             new_tree = new_tree.replace(node + node, node);
-
-    # if debug == 1:
-    #     print new_tree;
-    #     sys.exit();
 
     for node in nodes:
     # One loop through the nodes to retrieve all other info
@@ -154,13 +154,13 @@ def treeParse(tree, debug=0):
         #    sys.exit();
         # anc_match = re.findall(node + '[\d:(),]+', new_tree);
         anc_match = re.findall(node, topo);
-        if debug == 1:
+        if debug:
             print("ANC MATCH:", anc_match);
 
         anc_tree = new_tree[new_tree.index(anc_match[0]):][1:];
         # Ancestral labels are always to the right of the node label in the text of the tree, so we start our scan from the node label
 
-        if debug == 1:
+        if debug:
             print("NODE:", node);
             print("ANC_MATCH:", anc_match);
             print("ANC_TREE:", anc_tree);
@@ -179,7 +179,7 @@ def treeParse(tree, debug=0):
                 ancs[node] = anc_tree[:anc_tree.index(">")+1];
                 break;
 
-        if debug == 1:
+        if debug:
             print("FOUND ANC:", ancs[node]);
             print("---");
     nofo = {};
@@ -187,7 +187,7 @@ def treeParse(tree, debug=0):
         nofo[node] = [bl[node], ancs[node], nodes[node], supports[node]];
     # Now we just restructure everything to the old format for legacy support
 
-    if debug == 1:
+    if debug:
     # Debugging options to print things out
         print(("\ntree:\n" + tree + "\n"));
         print(("new_tree:\n" + new_tree + "\n"));
@@ -270,12 +270,6 @@ def sampleQuartets(globs, root_desc):
     # The number of quartets to sample around each branch
     ## ADD AS INPUT OPTION
 
-    globs['quartets'] = {};
-    # All qurtets for all nodes:
-    # <node> : [ <quartets> ]
-    # <quartet> is a tuple of tuples:
-    # ((split1-spec1, split1-spec2), (split2-spec1, split2-spec2))
-
     for node in globs['tree-dict']:
         if node in globs['tree-tips'] or node in root_desc or node == globs['root-node']:
             continue;
@@ -350,17 +344,22 @@ def sampleQuartets(globs, root_desc):
 
 #############################################################################
 
-def locusSCF(locus, aln, quartets, tree_dict, skip_chars):
+def locusSCF(locus_item):
+    locus, aln, quartets, tree_dict, skip_chars = locus_item
+    # Unpack the data for the current locus
 
     aln_len = len(aln[list(aln.keys())[0]]);
     # Get the alignment length from the first sequence
 
     locus_scf = {};
-    # The dictionary to calculate avreage sCF across all nodes in the current locus
+    # The dictionary to calculate average sCF across all nodes in the current locus
     # <locus id> : { <node id> : <scf sum>, <num quartets>, <avg scf> }
 
     quartet_scores = {};
     # Dictionary to hold all counts for each quartet sampled
+
+    node_scf = [];
+    # The list of sCFs in this locus
 
     for node in tree_dict:
     # Calculate sCF for every eligible node in the tree
@@ -371,9 +370,6 @@ def locusSCF(locus, aln, quartets, tree_dict, skip_chars):
 
         locus_scf[node] = { 'scf-sum' : 0, 'num-quartets' : 0, 'avg-scf' : "NA" };
         # Initialize the scf dict for the current node
-
-        #print(len(quartets));
-        #continue;
 
         quartet_scores[node] = {};
         # Dictionary to hold all counts for each quartet sampled
@@ -444,7 +440,7 @@ def locusSCF(locus, aln, quartets, tree_dict, skip_chars):
                             quartet_scores[node][quartet]['concordant-sites'] += 1;
                         # If the alleles from split1 match and the alleles from split2 match, the site is concordant
                         
-                        ## COUNT OTHER SITE PATTERNS HERE
+                        ## TODO: COUNT OTHER SITE PATTERNS HERE
 
                         #print(split1_site, split2_site);
             ## End site loop
@@ -462,21 +458,11 @@ def locusSCF(locus, aln, quartets, tree_dict, skip_chars):
 
         if locus_scf[node]['num-quartets'] != 0:
             locus_scf[node]['avg-scf'] = locus_scf[node]['scf-sum'] / locus_scf[node]['num-quartets'];
+            node_scf.append(locus_scf[node]['scf-sum'] / locus_scf[node]['num-quartets']);
         # Average all sCF from each quartet for this locus
     ## End node loop
 
-    scf_sum, num_nodes, scf_avg = 0, 0, "NA"; 
-    for node in locus_scf:
-        if locus_scf[node]['avg-scf'] != "NA":
-            scf_sum += locus_scf[node]['avg-scf'];
-            num_nodes += 1;
-    if num_nodes != 0:
-        scf_avg = scf_sum / num_nodes;
-    else:
-        scf_avg = "NA";
-    # Average over all nodes in the current locus to get gene-wide average sCF
-
-    return locus_scf, scf_sum, num_nodes, scf_avg, locus, quartet_scores;
+    return node_scf, locus, quartet_scores;
 
 #############################################################################
 
@@ -498,33 +484,51 @@ def scf(globs):
     # Sample quartets for all nodes
 
     step = "Calculating per-locus sCF";
-    step_start_time = PC.report_step(globs, step, False, "In progress...");
+    step_start_time = PC.report_step(globs, step, False, "Processed 0 / " + str(globs['num-loci']) + " loci...", full_update=True);
     # Status update
 
-    globs['scf'] = {};
     for node in globs['tree-dict']:
         if node in globs['tree-tips'] or node in root_desc or node == globs['root-node']:
             continue;
         # Cannot calculate sCF for tips, the root, or node descendant from the root
 
         globs['scf'][node] = { 'variable-sites' : 0, 'decisive-sites' : 0, 'concordant-sites' : 0, 'quartet-scf-sum' : 0,
-                                    'num-quartets' : 0, 'avg-quartet-scf' : "NA" };
-    # Initialize the dictionary to calculate average sCF per node across all loci
+                                    'total-quartets' : 0, 'avg-quartet-scf' : "NA" };
+        # Initialize the dictionary to calculate average sCF per node across all loci
 
-    with mp.Pool(processes=globs['num-procs']) as pool:
-        for result in pool.starmap(locusSCF, ((locus, globs['alns'][locus], globs['quartets'], globs['tree-dict'], globs['skip-chars']) for locus in globs['alns'])):
+    if globs['qstats']:
+        qstats_file = os.path.join(globs['outdir'], "quartet-stats.csv");
+        qfile = open(qstats_file, "w");
+        headers = ["locus","node","quartet","variable-sites","decisive-sites","concordant-sites"];
+        qfile.write(",".join(headers) + "\n");
+    # For --qstats, creates and opens a file to write site counts for each quartet within the pool loop
+
+    with globs['scf-pool'] as pool:
+        counter = 0;
+        # A counter to keep track of how many loci have been completed
+        for result in pool.imap_unordered(locusSCF, ((locus, globs['alns'][locus], globs['quartets'], globs['tree-dict'], globs['skip-chars']) for locus in globs['alns'])):
             # Loop over every locus in parallel to calculate sCF per node
 
-            locus_scf, scf_sum, num_nodes, scf_avg, locus, quartet_scores = result;
+            node_scf, locus, quartet_scores = result;
             # Unpack the current result
 
-            globs['aln-stats'][locus]['node-scf-sum'] = scf_sum;
-            globs['aln-stats'][locus]['num-nodes'] = num_nodes;
-            globs['aln-stats'][locus]['node-scf-avg'] = scf_avg;
+            globs['aln-stats'][locus]['node-scf-sum'] = sum([ n for n in node_scf ]);
+            globs['aln-stats'][locus]['num-nodes'] = len(node_scf);
+            globs['aln-stats'][locus]['node-scf-avg'] = "NA";
+            if globs['aln-stats'][locus]['num-nodes'] != 0:
+                globs['aln-stats'][locus]['node-scf-avg'] = globs['aln-stats'][locus]['node-scf-sum'] / globs['aln-stats'][locus]['num-nodes'];
+            globs['aln-stats'][locus]['low-scf-nodes'] = len([ n for n in node_scf if n < globs['min-scf'] ]);
             # Average sCF per locus stored with the other alignment stats
 
             for node in quartet_scores:
                 for q in quartet_scores[node]:
+
+                    if globs['qstats']:
+                        q_str = ";".join(q[0]) + ";" + ";".join(q[1]);
+                        outline = [locus, node, q_str] + [str(quartet_scores[node][q][col]) for col in headers[3:]];
+                        qfile.write(",".join(outline) + "\n");
+                    # For --qstats, writes the quartet stats to a file for the current quartet
+
                     globs['scf'][node]['variable-sites'] += quartet_scores[node][q]['variable-sites'];
                     globs['scf'][node]['decisive-sites'] += quartet_scores[node][q]['decisive-sites'];
                     globs['scf'][node]['concordant-sites'] += quartet_scores[node][q]['concordant-sites'];
@@ -532,22 +536,33 @@ def scf(globs):
 
                     if quartet_scores[node][q]['decisive-sites'] != 0:
                         globs['scf'][node]['quartet-scf-sum'] += quartet_scores[node][q]['concordant-sites'] / quartet_scores[node][q]['decisive-sites'];
-                        globs['scf'][node]['num-quartets'] += 1;
+                        globs['scf'][node]['total-quartets'] += 1;
                     # If there are decisive sites, calculate sCF for this quartet
             # For every quartet in every node, calculate sCF and sum up the number of sites in order to average
             # across nodes later
-        ## End starmap locus loop
+
+            counter += 1;
+            if counter % 100 == 0:
+                cur_scf_time = PC.report_step(globs, step, step_start_time, "Processed " + str(counter) + " / " + str(globs['num-loci']) + " loci...", full_update=True);
+            
+            # A counter and a status update every 100 loci
+
+        ## End imap locus loop
     ## End pool
 
-    step_start_time = PC.report_step(globs, step, step_start_time, "Success");
+    step_start_time = PC.report_step(globs, step, step_start_time, "Success", full_update=True);
     # Status update
     
     step = "Averaging sCF per node";
     step_start_time = PC.report_step(globs, step, False, "In progress...");
     for node in globs['scf']:
-        globs['scf'][node]['avg-quartet-scf'] = globs['scf'][node]['quartet-scf-sum'] / globs['scf'][node]['num-quartets'];
+        globs['scf'][node]['avg-quartet-scf'] = globs['scf'][node]['quartet-scf-sum'] / globs['scf'][node]['total-quartets'];
     step_start_time = PC.report_step(globs, step, step_start_time, "Success");
     # For every node, average the sCFs per quartet across all loci
+
+    if globs['qstats']:
+        qfile.close()
+    # For --qstats, closes the quartet stats file.
 
     return globs;
     

@@ -8,8 +8,21 @@ import sys
 import timeit
 import lib.core as PC
 
+#############################################################################
+
+class StrictDict(dict):
+# This prevents additional keys from being added to the global params dict in
+# any other part of the code, just to help me limit it's scope
+# https://stackoverflow.com/questions/32258706/how-to-prevent-key-creation-through-dkey-val
+    def __setitem__(self, key, value):
+        if key not in self:
+            raise KeyError("{} is not a legal key of this StrictDict".format(repr(key)));
+        dict.__setitem__(self, key, value);
+
+#############################################################################
+
 def init():
-    globs = {
+    globs_init = {
         'phyloacc-versions' : '',
         'interface-version' : 'Beta 1.0',
         'releasedate' : 'NA',
@@ -56,18 +69,32 @@ def init():
         'tree-dict' : False,
         'labeled-tree' : False,
         'root-node' : False,
+        'tree-tips' : False,
         # Tree variables
 
         'in-seqs' : {},
         'in-bed' : {},
         'alns' : {},
         'aln-stats' : {},
+        'num-loci' : False,
         # Sequence variables
 
         'targets' : [],
         'conserved' : [],
         'outgroup' : [],
         # Phylo options
+
+        'scf' : {},
+        # Tracks sCF values BY NODE over all loci
+
+        'quartets' : {},
+        # All qurtets for all nodes/branches in the species tree:
+        # <node> : [ <quartets> ]
+        # <quartet> is a tuple of tuples:
+        # ((split1-spec1, split1-spec2), (split2-spec1, split2-spec2))
+
+        'min-scf' : 0.5,
+        # sCF params
 
         'burnin' : 500,
         'mcmc' : 1000,
@@ -76,17 +103,46 @@ def init():
 
         'phyloacc' : 'PhyloAcc/PhyloAcc',
         'phyloacc-gbgc' : 'PhyloAcc/V2_GBGC/PhyloAcc_gBGC',
-        'phyloacc-gt' : '',
+        'phyloacc-gt' : 'PhyloAcc-GT2/SRC/PhyloAcc-GT_piQ',
         # Dependency paths
 
+        'batch-size' : 50,
+        'num-batches' : 0,
+        # Batch variables
+
         'num-procs' : 1,
+        # Number of procs for this script to use
+
+        'phyloacc-procs' : 1,
         'num-jobs' : 1,
         'procs-per-job' : 1,
-        # Number of jobs/threads to use
+        # Number of jobs/procs for PhyloAcc to use
+
+        'partition' : False,
+        'num-nodes' : "1",
+        'mem' : "4",
+        'time' : "1:00:00",
+        # Cluster options
+
+        'aln-pool' : False,
+        'scf-pool' : False,
+        # Process pools
+
+        'smk' : False,
+        'smk-config' : False,
+        # Job files
+
+        'job-dir' : '',
+        'job-alns' : '',
+        'job-cfgs' : '',
+        'job-bed' : '',
+        'job-smk' : '',
+        'job-out' : '',
+        'profile-dir' : False,
+        # Job directories
 
         'label-tree' : False,
         'info' : False,
-        'norun' : False,
         'dryrun' : False,
         'quiet' : False,
         # Other user options
@@ -103,13 +159,20 @@ def init():
         'progstarttime' : 0,
         'stepstarttime' : 0,
         'pids' : "",
-        'psutil' : True,
+        'psutil' : False,
+        'qstats' : False,
+        'norun' : False,
         'debug' : False,
         'nolog' : False,
         # Internal stuff
     }
 
-    globs['logfilename'] = "phyloacc-" + globs['startdatetime'] + ".errlog";
+    globs_init['logfilename'] = "phyloacc-" + globs_init['startdatetime'] + ".errlog";
     # Add the runtime to the error log file name.
 
+    globs = StrictDict(globs_init);
+    # Restrict the dict from having keys added to it after this
+
     return globs;
+
+#############################################################################
