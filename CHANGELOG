@@ -1,0 +1,8 @@
+10.26.2021
+- Re-added psutil check for memory tracking
+- Commented output code
+- Implemented StaticDict class for params dict
+- Removed redundant input-compression key (now seq-compression)
+- Now track low sCF nodes per locus
+- Removed locus_scf averaging within locusSCF function (now takes place in imap loop)
+- Better status updates during scf calculations

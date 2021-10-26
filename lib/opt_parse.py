@@ -16,6 +16,14 @@ import lib.tree as TREE
 def optParse(globs):
 # This function handles the command line options and prepares the output directory and files.
 # Defaults are set in params.py
+
+    try:
+        import psutil
+        globs['psutil'] = True;
+    except:
+        globs['psutil'] = False;
+    # Check if psutil is installed for memory usage stats.
+
     parser = argparse.ArgumentParser(description="PhyloAcc: Bayesian rate analysis of conserved non-coding genomic elements");
 
     parser.add_argument("-a", dest="aln_file", help="An alignment file with all loci concatenated. -b must also be specified. Expected as FASTA format for now. One of -a/-b or -d is REQUIRED.", default=False);
@@ -263,6 +271,10 @@ def optParse(globs):
     if args.qstats:
         globs['qstats'] = True;
     # Check for the internal quartet stats option to write to a file.
+
+    if globs['psutil']:
+        globs['pids'] = [psutil.Process(os.getpid())];
+    # Get the starting process ids to calculate memory usage throughout.
 
     startProg(globs);
     # After all the essential options have been set, call the welcome function.

@@ -188,7 +188,8 @@ def readSeq(globs):
         step = "Partitioning alignments by locus";
         step_start_time = PC.report_step(globs, step, False, "In progress...");
         globs['alns'] = partitionSeqs(globs['in-seqs'], globs['in-bed']);
-        step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(len(globs['alns'])) + " alignments partitioned");
+        globs['num-loci'] = len(globs['alns']);
+        step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(globs['num-loci']) + " alignments partitioned");
         # Separate the concatenated alignment to individual locus alignments based on the partitions in the bed file
 
         ##
@@ -219,12 +220,12 @@ def readSeq(globs):
         
         step = "Detecting compression of seq files";
         step_start_time = PC.report_step(globs, step, False, "In progress...");
-        globs['input-compression'] = PC.detectCompression(aln_files[0]);
-        if globs['input-compression'] == "none":
+        globs['seq-compression'] = PC.detectCompression(aln_files[0]);
+        if globs['seq-compression'] == "none":
             step_start_time = PC.report_step(globs, step, step_start_time, "Success: No compression detected");
         else:
-            step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + globs['input-compression'] + " detected");
-        # Detect the compression of the input sequence file
+            step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + globs['seq-compression'] + " detected");
+        # Detect the compression of the input sequence files
 
         step = "Reading input FASTA files";
         step_start_time = PC.report_step(globs, step, False, "In progress...");
@@ -243,7 +244,8 @@ def readSeq(globs):
             globs['alns'][locus_id] = cur_aln;
             # Add the current alignment to the main aln dict
 
-        step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(len(globs['alns'])) + " files read");
+        globs['num-loci'] = len(globs['alns']);
+        step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(globs['num-loci']) + " files read");
 
     # Read sequences if input is a directory of alignment files
     #######################

@@ -9,6 +9,7 @@
 lib/__pycache__/
 
 data/
+old/
 
 job-scripts/
 job_scripts/
