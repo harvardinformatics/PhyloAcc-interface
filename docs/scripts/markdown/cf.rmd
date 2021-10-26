@@ -20,6 +20,8 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 library(ggplot2)
 library(cowplot)
+library(phangorn)
+library(ape)
 source("../lib/design.r")
 ```
 
@@ -66,7 +68,7 @@ Where $n$ is the number of branches in the tree.
 Notes on runtime for concordance factor calculations:
 
 * ~3 minutes for all 500 simulated loci with 12 cores
-* 1 minute for 1000 loci with 32 cores, but strange slowdowns when I scale up...
+* ~6 hours for all 280000 ratite loci with 48 cores
 
 # Results
 
@@ -81,7 +83,7 @@ msc_sim_bed = read.csv("../../data/simu_msc_200_100_2-5.bed", header=F, sep="\t"
 names(msc_sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate", "gene.tree")
 msc_sim_data = merge(msc_sim_stats, msc_sim_bed, by="locus")  
 
-ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-2000.csv", header=T)
+ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-all.csv", header=T)
 ratite_bed = read.csv("../../data/allspecies_cnee_concat_partitions.bed", header=F, sep="\t")
 names(ratite_bed) = c("scaff", "start", "end", "locus")
 ratite_data = merge(ratite_stats, ratite_bed, by="locus")
@@ -132,7 +134,7 @@ ratite_var_dist = ggplot(ratite_data, aes(x=variable.sites)) +
   ylab("# loci") +
   bartheme()
 
-var_dists = plot_grid(sim_var_dist, msc_sim_var_dist, ratite_var_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
+var_dists = plot_grid(sim_var_dist, msc_sim_var_dist, ratite_var_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
 print(var_dists)
 
 ```
@@ -164,7 +166,7 @@ ratite_inf_dist = ggplot(ratite_data, aes(x=informative.sites)) +
   ylab("# loci") +
   bartheme()
 
-inf_dists = plot_grid(sim_inf_dist, msc_sim_inf_dist, ratite_inf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
+inf_dists = plot_grid(sim_inf_dist, msc_sim_inf_dist, ratite_inf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
 print(inf_dists)
 
 ```
@@ -199,7 +201,7 @@ ratite_var_inf_cor = ggplot(ratite_data, aes(x=variable.sites, y=informative.sit
   ylab("# informative sites") +
   bartheme()
 
-var_inf_cors = plot_grid(sim_var_inf_cor, msc_sim_var_inf_cor, ratite_var_inf_cor, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
+var_inf_cors = plot_grid(sim_var_inf_cor, msc_sim_var_inf_cor, ratite_var_inf_cor, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
 print(var_inf_cors)
 
 ```
@@ -231,7 +233,7 @@ ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
   ylab("# loci") +
   bartheme()
 
-scf_dists = plot_grid(sim_scf_dist, msc_sim_scf_dist, ratite_scf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
+scf_dists = plot_grid(sim_scf_dist, msc_sim_scf_dist, ratite_scf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
 print(scf_dists)
 
 
@@ -276,10 +278,63 @@ ratite_inf_scf_cor = ggplot(ratite_data, aes(x=informative.sites, y=node.scf.avg
   ylab("Avg. sCF") +
   bartheme()
 
-inf_scf_cors = plot_grid(sim_inf_scf_cor, msc_sim_inf_scf_cor, ratite_inf_scf_cor, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "2000 ratite loci"), label_size=8)
+inf_scf_cors = plot_grid(sim_inf_scf_cor, msc_sim_inf_scf_cor, ratite_inf_scf_cor, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
 print(inf_scf_cors)
 
 ```
+
+## Weighted RF to species tree vs. sCF for MSC sims
+
+```{r rf-scf-cors, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5, eval=F}
+
+ratite_tree = read.tree(file="../../data/ratite-msc.tre")
+# Read the species tree used for simulations
+
+rf_data = data.frame("locus"=c(), "rf"=c(), "wrf"=c())
+# Initialize data frame for storing rf calcs
+
+for(i in 1:nrow(msc_sim_bed)){
+  cur_gt_str = msc_sim_bed[i,]$gene.tree
+  cur_gt = read.tree(text=cur_gt_str)
+  
+  cur_rf = RF.dist(ratite_tree, cur_gt)
+  cur_wrf = wRF.dist(ratite_tree, cur_gt)
+  
+  rf_data = rbind(rf_data, data.frame("locus"=msc_sim_bed[i,]$locus, "rf"=cur_rf, "wrf"=cur_wrf))
+  
+}
+# For every simulated locus, read in the gene tree and calculate rf to the species tree
+
+rf_data = merge(rf_data, msc_sim_data, by="locus")
+# Merge the rf data with the cf data by locus
+
+
+msc_sim_rf_scf_cor = ggplot(rf_data, aes(x=rf, y=node.scf.avg)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=2)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("Robinson-Foulds") +
+  ylab("Avg. sCF") +
+  bartheme()
+# print(msc_sim_rf_scf_cor)
+
+msc_sim_wrf_scf_cor = ggplot(rf_data, aes(x=wrf, y=node.scf.avg)) +
+  geom_point(size=2, alpha=0.5, color=corecol(pal="wilke", numcol=1, offset=2)) +
+  geom_smooth(method="lm", se=F, linetype="dashed", color="#333333") +
+  #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("Weighted Robinson-Foulds") +
+  ylab("Avg. sCF") +
+  bartheme()
+# print(msc_sim_wrf_scf_cor)
+
+
+rf_scf_cors = plot_grid(msc_sim_rf_scf_cor, msc_sim_wrf_scf_cor, ncol=2)
+print(rf_scf_cors)
+
+```
+
 
 ## Distribution of rho (simulated data only)
 
