@@ -6,3 +6,7 @@
 - Now track low sCF nodes per locus
 - Removed locus_scf averaging within locusSCF function (now takes place in imap loop)
 - Better status updates during scf calculations
+
+11.08.2021
+- Changed name of main script from "phyloacc.py" to "phyloacc_interface.py"
+- Added post-processing script, phyloacc_post.py

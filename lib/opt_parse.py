@@ -435,7 +435,7 @@ def startProg(globs):
         PC.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 125);
     # Reporting the norun option.
 
-    
-
     # Other options
     #######################
+
+#############################################################################
