@@ -5,6 +5,7 @@
 
 import os
 import re
+import math
 import random
 import itertools
 import lib.core as PC
@@ -503,6 +504,9 @@ def scf(globs):
         qfile.write(",".join(headers) + "\n");
     # For --qstats, creates and opens a file to write site counts for each quartet within the pool loop
 
+    num_st, num_gt = 0, 0;
+    # Track the number of alignments assigned to each model
+
     with globs['scf-pool'] as pool:
         counter = 0;
         # A counter to keep track of how many loci have been completed
@@ -514,11 +518,23 @@ def scf(globs):
 
             globs['aln-stats'][locus]['node-scf-sum'] = sum([ n for n in node_scf ]);
             globs['aln-stats'][locus]['num-nodes'] = len(node_scf);
-            globs['aln-stats'][locus]['node-scf-avg'] = "NA";
+            globs['aln-stats'][locus]['node-scf-avg'] = "NA";                
+            globs['aln-stats'][locus]['low-scf-nodes'] = len([ n for n in node_scf if n < globs['min-scf'] ]);
             if globs['aln-stats'][locus]['num-nodes'] != 0:
                 globs['aln-stats'][locus]['node-scf-avg'] = globs['aln-stats'][locus]['node-scf-sum'] / globs['aln-stats'][locus]['num-nodes'];
-            globs['aln-stats'][locus]['low-scf-nodes'] = len([ n for n in node_scf if n < globs['min-scf'] ]);
+                globs['aln-stats'][locus]['perc-low-scf-nodes'] = globs['aln-stats'][locus]['low-scf-nodes'] / globs['aln-stats'][locus]['num-nodes'];
             # Average sCF per locus stored with the other alignment stats
+
+            if globs['run-mode'] == 'adaptive':
+                if globs['aln-stats'][locus]['low-scf-nodes'] > math.floor(globs['aln-stats'][locus]['num-nodes'] / 3):
+                    globs['aln-stats'] [locus]['batch-type'] = "gt";
+                    num_gt += 1;
+                else:
+                    globs['aln-stats'] [locus]['batch-type'] = "st";
+                    num_st += 1;
+            # If the run mode is adaptive, partition loci with more than 1/3 of nodes with low sCF to the gene tree model and all others
+            # to the species tree model
+            ## Partition the sequences based on scf
 
             for node in quartet_scores:
                 for q in quartet_scores[node]:
@@ -544,13 +560,11 @@ def scf(globs):
             counter += 1;
             if counter % 100 == 0:
                 cur_scf_time = PC.report_step(globs, step, step_start_time, "Processed " + str(counter) + " / " + str(globs['num-loci']) + " loci...", full_update=True);
-            
             # A counter and a status update every 100 loci
-
         ## End imap locus loop
     ## End pool
 
-    step_start_time = PC.report_step(globs, step, step_start_time, "Success", full_update=True);
+    step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(num_st) + " st, " + str(num_gt) + " gt loci.", full_update=True);
     # Status update
     
     step = "Averaging sCF per node";

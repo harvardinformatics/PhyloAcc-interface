@@ -65,6 +65,14 @@ def init():
         'overwrite' : False,
         # I/O options
         
+        'run-mode' : 'st',
+        # Run mode option
+
+        'theta' : False,
+        'coal-tree-file' : False,
+        'coal-tree-str' : False,
+        # Theta estimation
+
         'tree-string' : False,
         'tree-dict' : False,
         'labeled-tree' : False,
@@ -108,14 +116,16 @@ def init():
 
         'batch-size' : 50,
         'num-batches' : 0,
+        'st-batches' : [],
+        'gt-batches' : [],
         # Batch variables
 
         'num-procs' : 1,
         # Number of procs for this script to use
-
-        'phyloacc-procs' : 1,
-        'num-jobs' : 1,
+        
+        'num-jobs' : 1000,
         'procs-per-job' : 1,
+        'total-procs' : 1,
         # Number of jobs/procs for PhyloAcc to use
 
         'partition' : False,
@@ -132,6 +142,8 @@ def init():
         'smk-config' : False,
         # Job files
 
+        'iqtree' : '',
+        'astral' : '',
         'job-dir' : '',
         'job-alns' : '',
         'job-cfgs' : '',

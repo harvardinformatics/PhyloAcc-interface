@@ -261,9 +261,9 @@ def locusAlnStats(locus_item):
     num_seqs = len(aln);
     aln_len = len(aln[list(aln.keys())[0]]);
 
-    cur_stats = { 'num-seqs' : num_seqs, 'length' : aln_len, 'variable-sites' : 0, 
+    cur_stats = { 'num-seqs' : num_seqs, 'length' : aln_len, 'variable-sites' : 0, 'unique-seqs' : 0,
                                         'informative-sites' : 0, 'num-sites-w-gap' : 0, 'num-sites-half-gap' : 0,
-                                        'num-seqs-half-gap' : 0 };
+                                        'num-seqs-half-gap' : 0, 'low-qual' : False, 'batch-type' : "NA" };
     # Initialize the stats dict for this locus
 
     half_aln_len = aln_len / 2;
@@ -303,6 +303,14 @@ def locusAlnStats(locus_item):
         # Count whether this site contains a gap and, if so, whether more than half the sequences are a gap
     ## End site loop
 
+    cur_stats['num-unique-seqs'] = len(set(aln.values()));
+    # Count the number of unique sequences
+    # Could also count number of times each sequence occurs: https://stackoverflow.com/questions/30692655/counting-number-of-strings-in-a-list-with-python#30692666
+
+    if cur_stats['num-sites-half-gap'] > half_site_len or cur_stats['num-seqs-half-gap'] > half_site_len:
+        cur_stats['low-qual'] = True;
+    # Setting a flag for low quality sequence to be considered when estimating theta
+
     return locus, cur_stats;
 
 #############################################################################
@@ -319,95 +327,16 @@ def alnStats(globs):
             globs['aln-stats'][result[0]] = result[1];
             # Unpack the current result
 
+            if globs['run-mode'] == 'st':
+                globs['aln-stats'] [result[0]]['batch-type'] = "st";
+            # With run mode st, all loci are run through the species tree model
+
+            elif globs['run-mode'] == 'gt':
+                globs['aln-stats'] [result[0]]['batch-type'] = "gt";
+            # With run mode gt, all loci are run through the gene tree model
+            
     step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(len(globs['aln-stats'])) + " alignments processed");
 
     return globs;
 
 #############################################################################
-
-# read_seq = True;
-#     # We only want to read sequences that are tips in the input tree. This flag
-#     # keeps track of that
-
-#     # for line in reader(filename):
-#     #     line = readline(line);
-
-#     tot_lines = 22336350
-#     tot_lines_str = "22336350";
-#     i = 0;
-
-#     #for line in seqlines:
-#     with open(filename) as seqfile:
-#         for line in seqfile:
-#             if i % 1000 == 0:
-#                 print( str(i) + " / " + tot_lines_str + " (" + str((i / tot_lines) * 100) + ")")
-#             i += 1;
-#             line = line.strip();
-#             #line = readline(line);
-
-#             # if line in ["\n", ""]:
-#             #     continue;
-#             # Skip empty lines in the input
-
-#             if line[0] == ">":
-#                 curkey = line.replace(">", "");
-#                 print();
-#                 print(curkey);
-#                 seqdict[curkey] = "";
-#                 continue;
-
-#                 # print()
-#                 # print(curkey);
-#                 # if curkey in globs['tree-tips']:
-#                 #     read_seq = True;
-#                 #     seqdict[curkey] = "";
-#                 # else:
-#                 #     read_seq = False;
-#             # If the current line is a header, set that header as the current key and check
-#             # that it is a tip in the input tree
-#             #elif read_seq:
-#             seqdict[curkey] += line;
-#             # Otherwise, if the current header is a tip in the input tree the line contains 
-#             # sequence that should be added to the current header's sequence
-
-
-
-
-
-
-# for locus in globs['alns']:
-#         globs['aln-stats'][locus] = { 'num-seqs' : len(globs['alns'][locus]), 'length' : "NA", 'variable-sites' : 0, 
-#                                         'informative-sites' : 0, 'num-sites-w-gap' : 0, 'num-sites-half-gap' : 0};
-#         # Calculate some basic alignment statistics for each locus
-        
-#         globs['aln-stats'][locus]['length'] = len(globs['alns'][locus][list(globs['alns'][locus].keys())[0]]);
-#         # Get the length of the alignment from the first sequence
-
-#         for j in range(globs['aln-stats'][locus]['length']):
-#             site = "";
-#             for seq in globs['alns'][locus]:
-#                 site += globs['alns'][locus][seq][j];
-#             # Get each allele from each sequence as the site
-
-#             allele_counts = { allele : site.count(allele) for allele in site if allele not in globs['skip-chars'] };
-#             # Count the occurrence of each allele in the site
-
-#             if len(allele_counts) > 1:
-#                 globs['aln-stats'][locus]['variable-sites'] += 1;
-#                 # If there is more than one allele in the site, it is variable
-
-#                 multi_allele_counts = [ allele for allele in allele_counts if allele_counts[allele] >= 2 ];
-#                 # Count the number of allele present in at least 2 species
-
-#                 if len(multi_allele_counts) >= 2:
-#                     globs['aln-stats'][locus]['informative-sites'] += 1;
-#                 # If 2 or more alleles are present in 2 or more species, this site is informative
-
-#             if "-" in site:
-#                 globs['aln-stats'][locus]['num-sites-w-gap'] += 1;
-
-#                 if site.count("-") >= len(site) / 2:
-#                     globs['aln-stats'][locus]['num-sites-half-gap'] += 1;
-#             # Count whether this site contains a gap and, if so, whether more than half the sequences are a gap
-#         ## End site loop
-#     ## End locus loop

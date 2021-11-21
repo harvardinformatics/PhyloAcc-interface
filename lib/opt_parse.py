@@ -52,8 +52,10 @@ def optParse(globs):
     # Dependency paths
     ## Note: For now we will likely need three dependency paths for the models, but eventually these should all be consolidated
     
+    parser.add_argument("-l", dest="coal_tree", help="A file containing a rooted, Newick formatted tree with the same topology as the species tree in the mod file (-m), but with branch lengths in coalescent units. When the gene tree model is used, one of -l or --theta must be set.", default=False);
+    parser.add_argument("-r", dest="run_mode", help="Determines which version of PhyloAcc will be used. gt: use the gene tree model for all loci, st: use the species tree model for all loci, adaptive: use the gene tree model on loci with many branches with low sCF and species tree model on all other loci. Default: st", default=False);
     parser.add_argument("-n", dest="num_procs", help="The number of processes that this script should use. Default: 1.", type=int, default=1);
-    parser.add_argument("-p", dest="phyloacc_procs", help="The total number of processes that PhyloAcc can spawn. Should be set to the number of expected threads available. Default: 1.", type=int, default=1);
+    parser.add_argument("-p", dest="procs_per_batch", help="The number of processes to use for each batch of PhyloAcc. Default: 1.", type=int, default=1);
     parser.add_argument("-j", dest="num_jobs", help="The number of jobs (batches) to run in parallel. Must be less than or equal to the total processes for PhyloAcc (-p). Default: 1.", type=int, default=1);
     # User params
 
@@ -66,6 +68,7 @@ def optParse(globs):
     parser.add_argument("-time", dest="cluster_time", help="The time in hours to give each job. Default: 1.", default=False);
     # Cluster options
     
+    parser.add_argument("--theta", dest="theta", help="Set this to add gene tree estimation with IQ-tree and species estimation with ASTRAL for estimation of the theta prior. Note that a species tree with branch lengths in units of substitutions per site is still required with -m. Also note that this may add substantial runtime to the pipeline.", action="store_true", default=False);
     parser.add_argument("--labeltree", dest="labeltree", help="Simply reads the tree from the input mod file (-m), labels the internal nodes, and exits.", action="store_true", default=False);
     parser.add_argument("--overwrite", dest="ow_flag", help="Set this to overwrite existing files.", action="store_true", default=False);
     # User options
@@ -86,6 +89,8 @@ def optParse(globs):
     args = parser.parse_args();
     # The input options and help messages
 
+    ####################
+
     globs['call'] = " ".join(sys.argv);
     # Save the program call for later
 
@@ -100,6 +105,8 @@ def optParse(globs):
     # Parse the --labeltree option
 
     if not globs['label-tree']:
+    ## Read main input options if --labeltree isn't set
+
         globs, deps_passed = PC.execCheck(globs, args);
         if args.depcheck:
             if deps_passed:
@@ -114,7 +121,7 @@ def optParse(globs):
             globs['norun'] = True;
             globs['log-v'] = -1;
         globs['overwrite'] = args.ow_flag;
-        # Check run mode options.
+        # Check internal run mode options.
 
         if (not args.aln_file and not args.aln_dir) or (args.aln_file and args.aln_dir):
             PC.errorOut("OP1", "One input method must be specified: -a or -d", globs);
@@ -129,6 +136,10 @@ def optParse(globs):
         elif args.aln_dir:
             globs['aln-dir'] = args.aln_dir;
         # Save the input type as a global param
+    ## End main input options block
+
+    ## Input files
+    ####################
 
     if not args.mod_file:
         PC.errorOut("OP4", "A mod file must be provided with -m", globs);
@@ -149,13 +160,64 @@ def optParse(globs):
         globs['tree-tips'] = [ n for n in globs['tree-dict'] if globs['tree-dict'][n][2] == "tip" ];
     except:
         PC.errorOut("OP5", "Error reading tree from mod file!", globs);
-    # Read the tree as a dictionary
+    # Read the tree as a dictionary for sCF calculations
 
     if args.labeltree:
         print("# --labeltree SET. LABELING INPUT TREE AND EXITING:\n")
         print(globs['labeled-tree']);
         sys.exit(0);
     # If --labeltree is set, print the tree here and exit
+
+    ## Tree
+    ####################
+
+    if args.run_mode:
+        if args.run_mode not in ["st", "gt", "adaptive"]:
+            PC.errorOut("OP8", "Run mode (-r) must be one of: 'st', 'gt', or 'adaptive'.", globs);
+        if args.run_mode in ["gt", "adaptive"] and not (args.theta or args.coal_tree):
+            PC.errorOut("OP8", "When using the gene tree model with '-r gt' or '-r adaptive', a tree with branch lengths in coalescent units must also be provided with -l, or estimated with --theta.", globs);
+        globs['run-mode'] = args.run_mode;
+
+    if globs['run-mode'] == "st" and (args.theta or args.coal_tree):
+        print("# WARNING: When using the species tree model '-r st', a tree with coalescent units is not required. -l and --theta will be ignored.");
+    # Check the run mode option
+
+    ## Main run mode
+    ####################
+
+    job_sub_dirs = { 'job-alns' : 'alns', 'job-cfgs' : 'cfgs', 'job-bed' : 'bed', 'job-smk' : 'snakemake', 'job-out' : 'phyloacc-output' };
+    # Expected job directories to create
+
+    if globs['run-mode'] != 'st':
+        if args.theta and args.coal_tree:
+            PC.errorOut("OP8", "Only one of -l or --theta should be specified.", globs);
+        # Make sure both coalescent tree options aren't specified
+
+        if args.theta:
+            globs['theta'] = True;
+            globs['coal-tree-file'] = "phyloacc-job-files/astral/astral-species-tree.treefile"
+            job_sub_dirs = { 'job-alns' : 'alns', 'job-cfgs' : 'cfgs', 'job-bed' : 'bed', 'job-smk' : 'snakemake', 'job-out' : 'phyloacc-output', 'iqtree' : 'iqtree', 'astral' : 'astral' };
+        # If --theta is specified, set global param to True and add directories for iqtree and astral
+        elif args.coal_tree:
+            if not os.path.isfile(args.coal_tree):
+                PC.errorOut("OP8", "Cannot find coalescent tree file (-l): " + args.coal_tree, globs);
+
+            globs['coal-tree-file'] = args.coal_tree;
+            globs['coal-tree-str'] = open(globs['coal-tree-file'], "r").read();
+            # Read the tree string
+
+            try:
+                coal_tree_dict, coal_tree, coal_root = TREE.treeParse(globs['coal-tree-str']);
+                globs['tree-tips'] = [ n for n in globs['tree-dict'] if globs['tree-dict'][n][2] == "tip" ];
+            except:
+                PC.errorOut("OP5", "Error reading coalescent tree from mod file!", globs);
+            # Read the coalescent tree as a dictionary
+        # If -l is provided, check the tree file and read the tree here
+
+    ## TODO: Compare tree topologies
+
+    ## Coalescent tree options
+    ####################
 
     if not args.targets:
         PC.errorOut("OP6", "Target (-t) species must be specified.", globs);       
@@ -179,6 +241,9 @@ def optParse(globs):
                 PC.errorOut("OP7", "The following species label was provided in a group but is not present in the tree: " + species, globs);
     # A preliminary check here to make sure all provided labels are actually in the input tree
 
+    ## Species grouping options
+    ####################
+
     opt_keys = {'burnin' : args.burnin, 'mcmc' : args.mcmc, 'chain' : args.chain };
     for opt in opt_keys:
         if opt_keys[opt]:
@@ -186,6 +251,9 @@ def optParse(globs):
                 PC.errorOut("OP8", "-b, -m, and -n must all be positive integers.", globs);
             globs[opt] = opt_keys[opt];
     # Get the MCMC options
+
+    ## MCMC
+    ####################
 
     if not args.out_dest:
         globs['outdir'] = "phyloacc-out-" + globs['startdatetime'];
@@ -204,17 +272,22 @@ def optParse(globs):
         os.makedirs(globs['job-dir']);
     # Main job file dir
 
-    job_sub_dirs = { 'job-alns' : 'alns', 'job-cfgs' : 'cfgs', 'job-bed' : 'bed', 'job-smk' : 'snakemake', 'job-out' : 'phyloacc-output' };
     if not globs['norun']:
         for subdir in job_sub_dirs:
             globs[subdir] = os.path.join(globs['job-dir'], job_sub_dirs[subdir]);
             if not os.path.isdir(globs[subdir]):
                 os.makedirs(globs[subdir]);
-    # Job output subdirs    
+    # Job output subdirs
+
+    if globs['coal-tree-file']:
+        globs['coal-tree-file'] = os.path.abspath(globs['coal-tree-file']);
 
     globs['run-name'] = os.path.basename(os.path.normpath(globs['outdir']));
     globs['logfilename'] = os.path.join(globs['outdir'], globs['run-name'] + ".log");
     # Log file
+
+    ## Output files and directories
+    ####################
 
     if args.batch_size:
         print(args.batch_size);
@@ -224,12 +297,19 @@ def optParse(globs):
             globs['batch-size'] = int(args.batch_size);
     # Batch size
 
-    globs['phyloacc-procs'] = PC.isPosInt(args.phyloacc_procs, default=1);
+    globs['procs-per-job'] = PC.isPosInt(args.procs_per_batch, default=1);
     globs['num-jobs'] = PC.isPosInt(args.num_jobs, default=1);
-    if globs['num-jobs'] > globs['phyloacc-procs']:
-        PC.errorOut("OP11", "The specified number of jobs (-j) should not exceed the specified number of processes (-p).", globs);
-    globs['procs-per-job'] = math.floor(globs['phyloacc-procs'] / globs['num-jobs'])
+    globs['total-procs'] = globs['procs-per-job'] * globs['num-jobs'];
     # Determine resource allocation for PhyloAcc
+
+    globs['num-procs'] = PC.isPosInt(args.num_procs, default=1);
+    globs['aln-pool'] = mp.Pool(processes=globs['num-procs']);
+    globs['scf-pool'] = mp.Pool(processes=globs['num-procs']);
+    # Create the pool of processes for sCF calculation here so we copy the memory profile of the parent process
+    # before we've read any large data in
+
+    # Batch size and resource allocation
+    ####################
 
     if not args.cluster_part:
         PC.errorOut("OP12", "At least one cluster partition must be specified with -part.", globs);
@@ -258,15 +338,13 @@ def optParse(globs):
             globs['time'] = args.cluster_time + ":00:00";
     # Cluster memory option
 
+    ## Cluster options
+    ####################
+
     if args.quiet_flag:
         globs['quiet'] = True;
+        globs['log-v'] = 0;
     # Check the quiet option
-
-    globs['num-procs'] = PC.isPosInt(args.num_procs, default=1);
-    globs['aln-pool'] = mp.Pool(processes=globs['num-procs']);
-    globs['scf-pool'] = mp.Pool(processes=globs['num-procs']);
-    # Create the pool of processes for sCF calculation here so we copy the memory profile of the parent process
-    # before we've read any large data in
 
     if args.qstats:
         globs['qstats'] = True;
@@ -275,6 +353,9 @@ def optParse(globs):
     if globs['psutil']:
         globs['pids'] = [psutil.Process(os.getpid())];
     # Get the starting process ids to calculate memory usage throughout.
+
+    ## Internal stuff
+    ####################
 
     startProg(globs);
     # After all the essential options have been set, call the welcome function.
@@ -366,7 +447,23 @@ def startProg(globs):
         else:
             PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# -i:", pad) + 
                 PC.spacedOut(str(globs['id-file']), opt_pad) +
-                "No ID file provided, all loci in input bed file will be tested.");           
+                "No ID file provided, all loci in input bed file will be tested.");
+    # ID file option
+
+    ####################
+
+    if globs['run-mode'] == "st":
+        info_str = "All loci will be run with the species tree model of PhyloAcc";
+    elif globs['run-mode'] == "gt":
+        info_str = "All loci will be run with the gene tree model of PhyloAcc";
+    elif globs['run-mode'] == "adaptive":
+        info_str = "Loci with many branches with low sCF will be run using the gene tree model of PhyloAcc while all others will use the species tree model";
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# -r:", pad) + 
+                PC.spacedOut(str(globs['run-mode']), opt_pad) +
+                info_str);                  
+    # Run mode option
+
+    ####################
 
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# -burnin:", pad) + 
                 PC.spacedOut(str(globs['burnin']), opt_pad) +
@@ -379,31 +476,53 @@ def startProg(globs):
                 "The number of chains to run");      
     # MCMC options
 
+    ####################
+
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Loci per batch (-batch)", pad) + 
                 PC.spacedOut(str(globs['batch-size']), opt_pad) + 
                 "PhyloAcc will run this many loci in a single command.");
     # Batch size
 
-    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Processes (-p)", pad) + 
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Current processes (-n)", pad) + 
                 PC.spacedOut(str(globs['num-procs']), opt_pad) + 
-                "PhyloAcc and this interface will use this many total processes.");
+                "This interface will use this many processes.");
+    # Interface procs
+
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Jobs (-j)", pad) + 
                 PC.spacedOut(str(globs['num-jobs']), opt_pad) + 
-                "PhyloAcc will spawn this many jobs in parallel.");
-    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Processes per job", pad) + 
+                "PhyloAcc will submit this many jobs concurrently.");
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Processes per job (-p)", pad) + 
                 PC.spacedOut(str(globs['procs-per-job']), opt_pad) + 
                 "Each job will use this many processes.");
+    # snakemake procs
 
-    if globs['num-procs'] % globs['num-jobs'] != 0:
-        PC.printWrite(globs['logfilename'], globs['log-v'], 
-            "# WARNING: The number of jobs is not a multiple of the number of processes! Some processes will be idle.");
-    # Reporting the resource options.
+    ####################
+
+    if globs['theta']:
+        PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# --theta", pad) +
+                    PC.spacedOut("True", opt_pad) + 
+                    "A species tree with branch lengths in coalescent units will be estimated.");
+    else:
+        PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# --theta", pad) +
+                    PC.spacedOut("False", opt_pad) + 
+                    "A species tree with branch lengths in coalescent units will NOT be estimated.");            
+    # Report the theta option.
+
+    if globs['coal-tree-str']:
+        PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# -l", pad) +
+                    PC.spacedOut(globs['coal-tree-file'], opt_pad) + 
+                    "The species tree but with branch lengths in coalescent units.");
+    # Report the -l option
+
+    ####################
 
     if globs['overwrite']:
         PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# --overwrite", pad) +
                     PC.spacedOut("True", opt_pad) + 
                     "PhyloAcc will OVERWRITE the existing files in the specified output directory.");
     # Reporting the overwrite option.
+
+    ####################
 
     if not globs['quiet']:
         PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# --quiet", pad) + 
@@ -416,6 +535,8 @@ def startProg(globs):
         PC.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 125);
         PC.printWrite(globs['logfilename'], globs['log-v'], "# Running...");
     # Reporting the quiet option.
+
+    ####################
 
     # if globs['debug']:
     #     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# --debug", pad) + 
