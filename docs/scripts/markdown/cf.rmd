@@ -19,6 +19,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 library(ggplot2)
+library(dplyr)
 library(cowplot)
 library(phangorn)
 library(ape)
@@ -76,12 +77,14 @@ Notes on runtime for concordance factor calculations:
 sim_stats = read.csv("../../data/phyloacc-aln-stats-sim.csv", header=T)
 sim_bed = read.csv("../../data/simu_500_200_diffr_2-1.bed", header=F, sep="\t")
 names(sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate")
-sim_data = merge(sim_stats, sim_bed, by="locus")  
+sim_data = merge(sim_stats, sim_bed, by="locus")
+sim_quartets = read.csv("../../data/quartet-stats-sim.csv")
 
 msc_sim_stats = read.csv("../../data/phyloacc-aln-stats-sim-msc.csv", header=T)
 msc_sim_bed = read.csv("../../data/simu_msc_200_100_2-5.bed", header=F, sep="\t")
 names(msc_sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate", "gene.tree")
 msc_sim_data = merge(msc_sim_stats, msc_sim_bed, by="locus")  
+msc_sim_quartets = read.csv("../../data/quartet-stats-sim-msc.csv")
 
 ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-all.csv", header=T)
 ratite_bed = read.csv("../../data/allspecies_cnee_concat_partitions.bed", header=F, sep="\t")
@@ -168,6 +171,41 @@ ratite_inf_dist = ggplot(ratite_data, aes(x=informative.sites)) +
 
 inf_dists = plot_grid(sim_inf_dist, msc_sim_inf_dist, ratite_inf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
 print(inf_dists)
+
+```
+
+## % informative sites per locus
+
+```{r perc-inf-site-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
+sim_data$perc.informative.sites = sim_data$informative.sites / sim_data$length
+sim_perc_inf_dist = ggplot(sim_data, aes(x=perc.informative.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("% informative sites") +
+  ylab("# loci") +
+  bartheme()
+#print(var_dist)
+
+msc_sim_data$perc.informative.sites = msc_sim_data$informative.sites / msc_sim_data$length
+msc_sim_perc_inf_dist = ggplot(msc_sim_data, aes(x=perc.informative.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("% informative sites") +
+  ylab("# loci") +
+  bartheme()
+
+ratite_data$perc.informative.sites = ratite_data$informative.sites / ratite_data$length
+ratite_perc_inf_dist = ggplot(ratite_data, aes(x=perc.informative.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("% informative sites") +
+  ylab("# loci") +
+  bartheme()
+
+perc_inf_dists = plot_grid(sim_perc_inf_dist, msc_sim_perc_inf_dist, ratite_perc_inf_dist, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
+print(perc_inf_dists)
 
 ```
 
@@ -281,6 +319,181 @@ ratite_inf_scf_cor = ggplot(ratite_data, aes(x=informative.sites, y=node.scf.avg
 inf_scf_cors = plot_grid(sim_inf_scf_cor, msc_sim_inf_scf_cor, ratite_inf_scf_cor, ncol=3, labels=c("500 simulated loci", "200 MSC simulated loci", "280k ratite loci"), label_size=8)
 print(inf_scf_cors)
 
+```
+
+## Decisive sites per quartet
+
+```{r quartet-decisive-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
+sim_q_decisive_dist = ggplot(sim_quartets, aes(x=decisive.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# decisive sites") +
+  ylab("# quartets") +
+  bartheme()
+#print(var_dist)
+
+msc_sim_q_decisive_dist = ggplot(msc_sim_quartets, aes(x=decisive.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# decisive sites") +
+  ylab("# quartets") +
+  bartheme()
+
+# ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
+#   geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+#   scale_y_continuous(expand=c(0,0)) +
+#   xlab("Avg. sCF") +
+#   ylab("# loci") +
+#   bartheme()
+
+scf_dists = plot_grid(sim_q_decisive_dist, msc_sim_q_decisive_dist, ncol=2, labels=c("500 simulated loci", "200 MSC simulated loci"), label_size=8)
+print(scf_dists)
+
+
+cat(paste("# Avg. (simulated): ", mean(sim_quartets$decisive.sites)))
+cat(paste("# Median (simulated): ", median(sim_quartets$decisive.sites)))
+
+cat(paste("# Avg. (MSC simulated): ", mean(msc_sim_quartets$decisive.sites)))
+cat(paste("# Median (MSC simulated): ", median(msc_sim_quartets$decisive.sites)))
+
+# cat(paste("# Avg. (ratite): ", mean(ratite_data$node.scf.avg, na.rm=T)))
+# cat(paste("# Median (ratite): ", median(ratite_data$node.scf.avg, na.rm=T)))
+```
+
+## Decisive sites per branch
+
+```{r branch-decisive-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
+
+sim_quartets_branch = sim_quartets %>% group_by(locus, node) %>% summarize("decisive.sites"=sum(decisive.sites), "concordant.sites"=sum(concordant.sites))
+
+sim_branch_decisive_dist = ggplot(sim_quartets_branch, aes(x=decisive.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# decisive sites") +
+  ylab("# branches") +
+  bartheme()
+#print(var_dist)
+
+msc_sim_quartets_branch = msc_sim_quartets %>% group_by(locus, node) %>% summarize("decisive.sites"=sum(decisive.sites), "concordant.sites"=sum(concordant.sites))
+
+msc_sim_branch_decisive_dist = ggplot(msc_sim_quartets_branch, aes(x=decisive.sites)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("# decisive sites") +
+  ylab("# branches") +
+  bartheme()
+
+# ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
+#   geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+#   scale_y_continuous(expand=c(0,0)) +
+#   xlab("Avg. sCF") +
+#   ylab("# loci") +
+#   bartheme()
+
+scf_dists = plot_grid(sim_branch_decisive_dist, msc_sim_branch_decisive_dist, ncol=2, labels=c("500 simulated loci", "200 MSC simulated loci"), label_size=8)
+print(scf_dists)
+
+
+cat(paste("# Avg. (simulated): ", mean(sim_quartets_branch$decisive.sites)))
+cat(paste("# Median (simulated): ", median(sim_quartets_branch$decisive.sites)))
+
+cat(paste("# Avg. (MSC simulated): ", mean(msc_sim_quartets_branch$decisive.sites)))
+cat(paste("# Median (MSC simulated): ", median(msc_sim_quartets_branch$decisive.sites)))
+
+# cat(paste("# Avg. (ratite): ", mean(ratite_data$node.scf.avg, na.rm=T)))
+# cat(paste("# Median (ratite): ", median(ratite_data$node.scf.avg, na.rm=T)))
+```
+
+
+## sCF per quartet
+
+```{r quartet-scf-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
+sim_quartets$scf = sim_quartets$concordant.sites / sim_quartets$decisive.sites
+
+sim_q_scf_dist = ggplot(sim_quartets, aes(x=scf)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("sCF") +
+  ylab("# quartets") +
+  bartheme()
+#print(var_dist)
+
+msc_sim_quartets$scf = msc_sim_quartets$concordant.sites / msc_sim_quartets$decisive.sites
+
+msc_sim_q_scf_dist = ggplot(msc_sim_quartets, aes(x=scf)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("sCF") +
+  ylab("# quartets") +
+  bartheme()
+
+# ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
+#   geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+#   scale_y_continuous(expand=c(0,0)) +
+#   xlab("Avg. sCF") +
+#   ylab("# loci") +
+#   bartheme()
+
+scf_dists = plot_grid(sim_q_scf_dist, msc_sim_q_scf_dist, ncol=2, labels=c("500 simulated loci", "200 MSC simulated loci"), label_size=8)
+print(scf_dists)
+
+
+cat(paste("# Avg. (simulated): ", mean(sim_quartets$scf)))
+cat(paste("# Median (simulated): ", median(sim_quartets$scf)))
+
+cat(paste("# Avg. (MSC simulated): ", mean(msc_sim_quartets$scf)))
+cat(paste("# Median (MSC simulated): ", median(msc_sim_quartets$scf)))
+
+# cat(paste("# Avg. (ratite): ", mean(ratite_data$node.scf.avg, na.rm=T)))
+# cat(paste("# Median (ratite): ", median(ratite_data$node.scf.avg, na.rm=T)))
+```
+
+## sCF per quartet
+
+```{r branch-scf-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
+sim_quartets_branch$scf = sim_quartets_branch$concordant.sites / sim_quartets_branch$decisive.sites
+
+sim_branch_scf_dist = ggplot(sim_quartets_branch, aes(x=scf)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("sCF") +
+  ylab("# branches") +
+  bartheme()
+#print(var_dist)
+
+msc_sim_quartets_branch$scf = msc_sim_quartets_branch$concordant.sites / msc_sim_quartets_branch$decisive.sites
+
+msc_sim_branch_scf_dist = ggplot(msc_sim_quartets_branch, aes(x=scf)) +
+  geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=2), color="#999999") +
+  scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("500 simulated loci") +
+  xlab("sCF") +
+  ylab("# branches") +
+  bartheme()
+
+# ratite_scf_dist = ggplot(ratite_data, aes(x=node.scf.avg)) +
+#   geom_histogram(fill=corecol(pal="wilke", numcol=1, offset=1), bins=50, color="#999999") +
+#   scale_y_continuous(expand=c(0,0)) +
+#   xlab("Avg. sCF") +
+#   ylab("# loci") +
+#   bartheme()
+
+scf_dists = plot_grid(sim_branch_scf_dist, msc_sim_branch_scf_dist, ncol=2, labels=c("500 simulated loci", "200 MSC simulated loci"), label_size=8)
+print(scf_dists)
+
+
+cat(paste("# Avg. (simulated): ", mean(sim_quartets$scf)))
+cat(paste("# Median (simulated): ", median(sim_quartets$scf)))
+
+cat(paste("# Avg. (MSC simulated): ", mean(msc_sim_quartets$scf)))
+cat(paste("# Median (MSC simulated): ", median(msc_sim_quartets$scf)))
 ```
 
 ## Weighted RF to species tree vs. sCF for MSC sims
