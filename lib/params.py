@@ -31,12 +31,14 @@ def init():
         'github' : 'https://github.com/xyz111131/PhyloAcc/issues',
         'starttime' : timeit.default_timer(),
         'startdatetime' : PC.getOutTime(),
+        'startdatetimenice' : PC.getRunTimeNice(),
         # Meta info
 
         'pyver' :  ".".join(map(str, sys.version_info[:3])),
         # System info
 
         'call' : "",
+        'script-dir' : "",
         # Script call info
 
         'aln-file' : False,
@@ -58,6 +60,7 @@ def init():
         'run-name' : 'phyloacc',
         'logfilename' : 'phyloacc.errlog',
         'alnstatsfile' : 'phyloacc-aln-stats.csv',
+        'no-inf-loci-file' : 'no-informative-sites-loci.txt',
         'scfstatsfile' : 'phyloacc-scf-stats.csv',
         'scftreefile' : 'phyloacc-scf.tree',
         'logdir' : '',
@@ -68,6 +71,9 @@ def init():
         'run-mode' : 'st',
         # Run mode option
 
+        'plot' : False,
+        # Option to output plots/html
+
         'theta' : False,
         'coal-tree-file' : False,
         'coal-tree-str' : False,
@@ -76,16 +82,26 @@ def init():
         'tree-string' : False,
         'tree-dict' : False,
         'labeled-tree' : False,
+        'scf-labeled-tree' : False,
         'root-node' : False,
         'tree-tips' : False,
         # Tree variables
 
         'in-seqs' : {},
         'in-bed' : {},
+        'locus-ids' : [],
         'alns' : {},
         'aln-stats' : {},
         'num-loci' : False,
         # Sequence variables
+
+        'avg-aln-len' : "NA",
+        'med-aln-len' : "NA",
+        'avg-nogap-seq-len' : "NA",
+        'med-nogap-seq-len' : "NA",
+        'no-inf-sites-loci' : [],
+        'gappy-loci' : [],
+        # Alignment summary stats
 
         'targets' : [],
         'conserved' : [],
@@ -109,13 +125,21 @@ def init():
         'chain' : 1,
         # MCMC options
 
+        'phyloacc-defaults-file' : "phyloacc-opts.txt",
+        'phyloacc-defaults' : {},
+        'phyloacc-opts' : [],
+        # All other PhyloAcc options as a list
+
         'phyloacc' : 'PhyloAcc/PhyloAcc',
         'phyloacc-gbgc' : 'PhyloAcc/V2_GBGC/PhyloAcc_gBGC',
-        'phyloacc-gt' : 'PhyloAcc-GT2/SRC/PhyloAcc-GT_piQ',
+        #'phyloacc-gt' : 'PhyloAcc-GT2/SRC/PhyloAcc-GT_piQ',
+        'phyloacc-gt' : 'testSRC_debug4_2tree/PhyloAcc-GT_piQ',
         # Dependency paths
 
         'batch-size' : 50,
         'num-batches' : 0,
+        'st-loci' : 0,
+        'gt-loci' : 0,
         'st-batches' : [],
         'gt-batches' : [],
         # Batch variables
@@ -142,16 +166,38 @@ def init():
         'smk-config' : False,
         # Job files
 
+        'id-flag' : True,
+
         'iqtree' : '',
         'astral' : '',
         'job-dir' : '',
         'job-alns' : '',
         'job-cfgs' : '',
         'job-bed' : '',
+        'job-ids' : '',
         'job-smk' : '',
         'job-out' : '',
         'profile-dir' : False,
         # Job directories
+
+        'plot-dir' : '',
+        'input-tree-plot-file' : 'input-species-tree.png',
+        'aln-len-plot-file' : 'aln-len-hist.png',
+        'seq-len-plot-file' : 'avg-seq-len-nogap-hist.png',
+        'inf-sites-plot-file' : 'informative-sites-hist.png',
+        'inf-sites-frac-plot-file' : 'informative-sites-frac-hist.png',
+        'var-inf-sites-plot-file' : 'variable-informative-sites.png',
+        'avg-scf-hist-file' : 'avg-scf-per-locus.png',
+        'low-scf-hist-file' : 'perc-low-scf-branchers-per-locus.png',
+        'scf-tree-plot-file' : 'scf-species-tree.png', 
+        'bl-scf-plot-file' : 'bl-scf.png', 
+        'html-dir' : '',
+        'html-file' : '',
+        # Plot and HTML summary files
+
+        'status-script' : 'slurm_status.py',
+        'smk-cmd' : '',
+        # The final snakemake command to report
 
         'label-tree' : False,
         'info' : False,
@@ -163,6 +209,8 @@ def init():
         'aln-stats-written' : False,
         'scf-stats-written' : False,
         'scf-tree-written' : False,
+        'html-summary-written' : False,
+
         'pad' : 82,
         'endprog' : False,
         'exit-code' : 0,
@@ -181,6 +229,10 @@ def init():
 
     globs_init['logfilename'] = "phyloacc-" + globs_init['startdatetime'] + ".errlog";
     # Add the runtime to the error log file name.
+
+    for line in open(globs_init['phyloacc-defaults-file']):
+        line = line.strip().split("\t");
+        globs_init['phyloacc-defaults'][line[0]] = {'type' : line[2], 'default' : line[1]};
 
     globs = StrictDict(globs_init);
     # Restrict the dict from having keys added to it after this

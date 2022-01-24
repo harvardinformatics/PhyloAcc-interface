@@ -48,6 +48,9 @@ def optParse(globs):
     parser.add_argument("-chain", dest="chain", help="The number of chains. Default: 1", default=False);
     # MCMC options
 
+    parser.add_argument("-phyloacc", dest="phyloacc_opts", help="A catch-all option for other PhyloAcc parameters. Enter as a semi-colon delimited list of options: 'OPT1 value;OPT2 value'", default=False);
+    # PhyloAcc options
+
     parser.add_argument("-path", dest="phyloacc_path", help="The path to the PhyloAcc binary. Default: PhyloAcc", default=False);
     # Dependency paths
     ## Note: For now we will likely need three dependency paths for the models, but eventually these should all be consolidated
@@ -73,9 +76,9 @@ def optParse(globs):
     parser.add_argument("--overwrite", dest="ow_flag", help="Set this to overwrite existing files.", action="store_true", default=False);
     # User options
     
+    parser.add_argument("--plot", dest="plot_flag", help="Plot some summary statistics from the input data.", action="store_true", default=False);
     parser.add_argument("--info", dest="info_flag", help="Print some meta information about the program and exit. No other options required.", action="store_true", default=False);
     parser.add_argument("--depcheck", dest="depcheck", help="Run this to check that all dependencies are installed at the provided path. No other options necessary.", action="store_true", default=False);
-    #parser.add_argument("--dryrun", dest="dryrun", help="With all options provided, set this to run through the whole pseudo-it pipeline without executing external commands.", action="store_true", default=False);
     parser.add_argument("--version", dest="version_flag", help="Simply print the version and exit. Can also be called as '-version', '-v', or '--v'", action="store_true", default=False);
     parser.add_argument("--quiet", dest="quiet_flag", help="Set this flag to prevent PhyloAcc from reporting detailed information about each step.", action="store_true", default=False);
     # Run options
@@ -188,6 +191,9 @@ def optParse(globs):
     job_sub_dirs = { 'job-alns' : 'alns', 'job-cfgs' : 'cfgs', 'job-bed' : 'bed', 'job-smk' : 'snakemake', 'job-out' : 'phyloacc-output' };
     # Expected job directories to create
 
+    if globs['id-flag']:
+        job_sub_dirs['job-ids'] = 'ids';
+
     if globs['run-mode'] != 'st':
         if args.theta and args.coal_tree:
             PC.errorOut("OP8", "Only one of -l or --theta should be specified.", globs);
@@ -255,6 +261,59 @@ def optParse(globs):
     ## MCMC
     ####################
 
+    if args.phyloacc_opts:
+        while "; " in args.phyloacc_opts:
+            args.phyloacc_opts = args.phyloacc_opts.replace("; ", ";");
+        phyloacc_opts = args.phyloacc_opts.split(";");
+        # A common error might be for users to put a space after each semi-colon, so we address that here and split the options
+
+        for opt_val in phyloacc_opts:
+        # For every option provided by the user
+
+            while "  " in opt_val:
+                opt_val = opt_val.replace("  ", " ");
+            opt, val = opt_val.split(" ");
+            # Again a common error may be for multiple spaces to be included, so we get rid of those and split out the current
+            # option and value
+
+            opt = opt.upper();
+            # PhyloAcc options are all upper case
+
+            if opt not in globs['phyloacc-defaults']:
+                PC.errorOut("OP9", "One of the provided PhyloAcc options (-phyloacc) is invalid: " + opt, globs);
+            # Check if the given option is even one of the possible ones and error out if not
+
+            option_pass = True;
+            if val == globs['phyloacc-defaults'][opt]['default']:
+                continue;
+            # If the provided value for the current option is the same as the default value, just leave it out
+
+            elif globs['phyloacc-defaults'][opt]['type'] == "POS_INT":
+                if not PC.isPosInt(val):
+                    option_pass = False;                
+            elif globs['phyloacc-defaults'][opt]['type'] == "POS_FLOAT":
+                if not PC.isPosFloat(val):
+                    option_pass = False;           
+            elif globs['phyloacc-defaults'][opt]['type'] in ["PROB", "PERC"]:
+                if not PC.isPosFloat(val, maxval=1.0):
+                    option_pass = False;          
+            elif globs['phyloacc-defaults'][opt]['type'] == "BOOL":
+                val = val.upper();
+                if val not in ["1", "0"]:
+                    option_pass = False; 
+            # Check each value against its possible values for its given type
+
+            if not option_pass:
+                PC.errorOut("OP9", "The value of the provided PhyloAcc option " + opt + " is invalid for its type (" + globs['phyloacc-defaults'][opt]['type'] + "): " + val, globs);  
+            # If the value is not valid, error out
+
+            globs['phyloacc-opts'].append(opt + " " + val);
+            # If the value for the given option passes all checks, then add this option and value to the global list
+        ## End option loop
+
+    ## Phyloacc options
+    ####################
+
     if not args.out_dest:
         globs['outdir'] = "phyloacc-out-" + globs['startdatetime'];
     else:
@@ -266,6 +325,20 @@ def optParse(globs):
     if not os.path.isdir(globs['outdir']) and not globs['norun']:
         os.makedirs(globs['outdir']);
     # Main output dir
+
+    if args.plot_flag:
+        globs['plot-dir'] = os.path.join(globs['outdir'], "plots");
+        if not os.path.isdir(globs['plot-dir']) and not globs['norun']:
+            os.makedirs(globs['plot-dir']);
+        globs['plot'] = True;
+        # Plot option
+
+        globs['html-dir'] = os.path.join(globs['outdir'], "html");
+        # if not os.path.isdir(globs['html-dir']) and not globs['norun']:
+        #     os.makedirs(globs['html-dir']);
+        globs['html-file'] = os.path.join(globs['outdir'], "phyloacc-pre-run-summary.html");
+        # HTML directory
+    # Parse the --plot option
 
     globs['job-dir'] = os.path.join(globs['outdir'], "phyloacc-job-files");
     if not os.path.isdir(globs['job-dir']) and not globs['norun']:
@@ -435,6 +508,18 @@ def startProg(globs):
     # Cluster options
     #######################
 
+    if globs['phyloacc-opts']:
+        PC.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 125);
+        PC.printWrite(globs['logfilename'], globs['log-v'], "# PHYLOACC OPTIONS:");    
+        PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Option", pad) + PC.spacedOut("Setting", opt_pad));
+
+        for opt_val in globs['phyloacc-opts']:
+            opt, val = opt_val.split(" ");
+            PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# " + opt, pad) + val);
+
+    # PhyloAcc options
+    #######################
+
     PC.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 125);
     PC.printWrite(globs['logfilename'], globs['log-v'], "# OPTIONS INFO:");    
     PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# Option", pad) + PC.spacedOut("Current setting", opt_pad) + "Current action");
@@ -495,6 +580,20 @@ def startProg(globs):
                 PC.spacedOut(str(globs['procs-per-job']), opt_pad) + 
                 "Each job will use this many processes.");
     # snakemake procs
+
+    ####################
+
+    if globs['plot']:
+        plot_status = "True";
+        plot_status_str = "An HTML file summarizing the input data will be written to " + globs['html-file'];
+    else:
+        plot_status = "False";
+        plot_status_str = "No HTML summary file will be generated.";
+
+    PC.printWrite(globs['logfilename'], globs['log-v'], PC.spacedOut("# --plot", pad) + 
+                PC.spacedOut(plot_status, opt_pad) + 
+                plot_status_str);
+    # --plot option
 
     ####################
 

@@ -83,10 +83,14 @@ def genJobFiles(globs):
     step_start_time = PC.report_step(globs, step, False, "In progress...");
     # Status update
 
-    st_alns = { aln : globs['alns'][aln] for aln in globs['alns'] if globs['aln-stats'][aln]['batch-type'] == "st" };
-    gt_alns = { aln : globs['alns'][aln] for aln in globs['alns'] if globs['aln-stats'][aln]['batch-type'] == "gt" };
+    st_alns = { aln : globs['alns'][aln] for aln in globs['alns'] if globs['aln-stats'][aln]['batch-type'] == "st" and aln not in globs['no-inf-sites-loci'] };
+    gt_alns = { aln : globs['alns'][aln] for aln in globs['alns'] if globs['aln-stats'][aln]['batch-type'] == "gt" and aln not in globs['no-inf-sites-loci'] };
     # Subset alignments based on model type. This is either specified by the user with '-r st' or '-r gt', or is decided
     # by sCF with '-r adaptive'.
+
+    globs['st-loci'] = len(st_alns);
+    globs['gt-loci'] = len(gt_alns);
+    # Adjust the counts after removing alignments with no informative sites
 
     model_num = 0;
     batch_num = 0;
@@ -148,6 +152,8 @@ def genJobFiles(globs):
 
             cur_bed_file = os.path.join(globs['job-bed'], batch_num_str + "-" + model_type + ".bed");
             with open(cur_bed_file, "w") as bedfile:
+                batch_aln_id = 0;
+                ## NOTE: Right phyloacc requires element IDs to be integers starting from 0. I think this should be changed.
                 for aln in batch_aln_list:
 
                     aln_len = globs['aln-stats'][aln]['length'];
@@ -157,18 +163,39 @@ def genJobFiles(globs):
                     # Get the end coordinate of the current locus in the concatenated alignment by
                     # adding the length to the previous length sum
 
-                    outline = [aln, str(len_sum), str(end_coord), aln];
+                    outline = [str(batch_aln_id), str(len_sum), str(end_coord), aln];
                     bedfile.write("\t".join(outline) + "\n");
                     # Write the info for the current locus
 
                     len_sum += aln_len;
+
+                    batch_aln_id += 1;
                     # Add the length to the length sum as the start coordinate for the next locus
             # Write a bed file that contains all coordinates for the current alignment
+
+            if globs['id-flag']:
+                cur_id_file = os.path.join(globs['job-ids'], batch_num_str + "-" + model_type + ".id");
+                cur_id_file = os.path.abspath(cur_id_file);
+                with open(cur_id_file, "w") as idfile:
+                    batch_aln_id = 0;
+                    for aln in batch_aln_list:
+                        idfile.write(str(batch_aln_id) + "\n");
+                        batch_aln_id += 1;
+            # Write an ID file
+
+            phyloacc_opt_str = "";
+            if globs['phyloacc-opts']:
+                phyloacc_opt_str = "\n".join(globs['phyloacc-opts']);
+
+            id_line_str = "";
+            if globs['id-flag']:
+                id_line_str = "\nID_FILE " + cur_id_file;
 
             cur_cfg_file = os.path.join(globs['job-cfgs'], batch_num_str + "-" + model_type + ".cfg");
             with open(cur_cfg_file, "w") as cfgfile:
                 cfgfile.write(TEMPLATES.phyloaccConfig().format(mod_file=os.path.abspath(globs['mod-file']),
                                                                         bed_file=os.path.abspath(cur_bed_file),
+                                                                        id_line=id_line_str,
                                                                         aln_file=os.path.abspath(cur_aln_file),
                                                                         coal_tree_line=coal_tree_line,
                                                                         outdir=os.path.abspath(cur_out_dir),
@@ -179,7 +206,8 @@ def genJobFiles(globs):
                                                                         targets= ";".join(globs['targets']),
                                                                         outgroup=";".join(globs['outgroup']),
                                                                         conserved=";".join(globs['conserved']),
-                                                                        procs_per_job=str(globs['procs-per-job'])
+                                                                        procs_per_job=str(globs['procs-per-job']),
+                                                                        phyloacc_opts=phyloacc_opt_str
                                                                         ))
             # Write the phyloacc config file for the current concatenated alignment
         ## End batch loop

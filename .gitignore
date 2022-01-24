@@ -20,3 +20,6 @@ job_scripts/
 
 .snakemake
 snakemake-template.smk
+
+mammal-accelerated-elements-gt*
+ratite-adaptive-theta*

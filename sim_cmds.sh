@@ -3,7 +3,7 @@
 time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-adaptive-theta -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 --overwrite --theta -r adaptive
 time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-adaptive -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 -l sim-tree-astral.tre --overwrite -r adaptive
 time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-adaptive -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 --overwrite
-time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-gt -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 -l sim-tree-astral.tre --overwrite -r gt
+time -p python phyloacc_interface.py -d /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-gt -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 -l sim-tree-astral.tre --overwrite -r gt
 time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-gt-theta -t strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid -g allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar -part holy-info,holy-cow,holy-smokes -n 24 -p 4 -j 12 --theta --overwrite -r gt
 
 ##########################
@@ -76,3 +76,9 @@ time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc
 # ALL loci
 # python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed.gz -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -o /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/test-real-all-b10000/ -t strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid -g allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar -n 48 -p 48 -j 48 -batch 10000 -part holy-info,holy-cow,holy-smokes,shared -time 4 --overwrite
 # Total execution time:            22006.353 seconds.
+
+##########################
+
+# Mammals
+
+# time -p python phyloacc_interface.py -d /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/gt-test-mammals/seq/ -m /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/gt-test-mammals/param-files/mammal_acc1.mod -l /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/gt-test-mammals/param-files/tree_coal_unit.mod -t "triMan1;lepWed1;odoRosDiv1;orcOrc1;turTru2" -g "monDom5;sarHar1;macEug2;ornAna1" -r gt -burnin 750 -mcmc 1500 -n 24 -p 4 -j 40 -part "holy-info,holy-cow,holy-smokes" -o mammal-test -phyloacc "CONSERVE_PRIOR_B 0.1;ACCE_PRIOR_A 4; ACCE_PRIOR_B 0.5; CONSERVE_PROP 0.5; INIT_CONSERVE_RATE 0.3; WL 1; CONSTOMIS 0.5; GAP_PROP 0.999; BR_SAMPLE_THRESHOLD 0.007; THIN 4; SEED 123"

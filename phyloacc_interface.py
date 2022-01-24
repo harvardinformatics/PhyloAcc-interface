@@ -17,6 +17,7 @@ import lib.seq as SEQ
 import lib.tree as TREE
 import lib.output as OUT
 import lib.batch as BATCH
+import lib.plot as PLOT
 
 #############################################################################
 
@@ -31,6 +32,8 @@ if __name__ == '__main__':
         sys.exit(0);
     # The version option to simply print the version and exit.
     # Need to get actual PhyloAcc version for this, and not just the interface version.
+
+    globs['script-dir'] = os.path.dirname(os.path.realpath(__file__));
 
     if "--quiet" not in sys.argv:
         print("\n" + " ".join(sys.argv) + "\n");
@@ -82,6 +85,17 @@ if __name__ == '__main__':
 
     globs = BATCH.writeSnakemake(globs);
     # Generates the snakemake config and cluster profile
+
+    globs['smk-cmd'] = "snakemake -p -s " + os.path.abspath(globs['smk']);
+    globs['smk-cmd'] += " --configfile " + os.path.abspath(globs['smk-config']);
+    globs['smk-cmd'] += " --profile " + os.path.abspath(globs['profile-dir']);
+    globs['smk-cmd'] += " --cluster-status " + os.path.abspath(globs['status-script']);
+    globs['smk-cmd'] += " --dryrun";
+    # The snakemake command to run PhyloAcc
+
+    if globs['plot']:
+        PLOT.genPlots(globs);
+        globs = PLOT.writeHTML(globs);
 
     PC.endProg(globs);
 

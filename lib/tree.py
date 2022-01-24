@@ -225,6 +225,25 @@ def remBranchLength(treestring):
 
 #############################################################################
 
+def addBranchLength(tree, treedict, no_label=False, keep_tp_label=False):
+# Re-writes the branch lengths onto a topology parsed by treeParse.
+	for node in treedict:
+		if treedict[node][2] == 'root':
+			continue;
+		if treedict[node][0] != "NA":
+			tree = tree.replace(node, node + ":" + treedict[node][0]);
+			if treedict[node][3] != "NA" and not no_label:
+				tree = tree.replace(node + ":" + treedict[node][0], node + "_" + treedict[node][3] + ":" + treedict[node][0]);
+		elif treedict[node][3] != "NA" and not no_label:
+			tree = tree.replace(node, node + "_" + treedict[node][3]);
+
+	if no_label and not keep_tp_label:
+		tree = re.sub("<[\d]+>", "", tree);
+
+	return tree;
+
+#############################################################################
+
 def getDesc(d_node, d_treedict):
 # This function takes a species in the current tree and the dictionary of the current tree
 # returned by treeparse and finds the direct descendants of the species.
@@ -504,9 +523,6 @@ def scf(globs):
         qfile.write(",".join(headers) + "\n");
     # For --qstats, creates and opens a file to write site counts for each quartet within the pool loop
 
-    num_st, num_gt = 0, 0;
-    # Track the number of alignments assigned to each model
-
     with globs['scf-pool'] as pool:
         counter = 0;
         # A counter to keep track of how many loci have been completed
@@ -518,7 +534,8 @@ def scf(globs):
 
             globs['aln-stats'][locus]['node-scf-sum'] = sum([ n for n in node_scf ]);
             globs['aln-stats'][locus]['num-nodes'] = len(node_scf);
-            globs['aln-stats'][locus]['node-scf-avg'] = "NA";                
+            globs['aln-stats'][locus]['node-scf-avg'] = "NA";
+            globs['aln-stats'][locus]['perc-low-scf-nodes'] = "NA";            
             globs['aln-stats'][locus]['low-scf-nodes'] = len([ n for n in node_scf if n < globs['min-scf'] ]);
             if globs['aln-stats'][locus]['num-nodes'] != 0:
                 globs['aln-stats'][locus]['node-scf-avg'] = globs['aln-stats'][locus]['node-scf-sum'] / globs['aln-stats'][locus]['num-nodes'];
@@ -527,11 +544,15 @@ def scf(globs):
 
             if globs['run-mode'] == 'adaptive':
                 if globs['aln-stats'][locus]['low-scf-nodes'] > math.floor(globs['aln-stats'][locus]['num-nodes'] / 3):
-                    globs['aln-stats'] [locus]['batch-type'] = "gt";
-                    num_gt += 1;
+                    globs['aln-stats'][locus]['batch-type'] = "gt";
+                    globs['gt-loci'] += 1;
                 else:
-                    globs['aln-stats'] [locus]['batch-type'] = "st";
-                    num_st += 1;
+                    globs['aln-stats'][locus]['batch-type'] = "st";
+                    globs['st-loci'] += 1;
+            elif globs['run-mode'] == 'st':
+                globs['st-loci'] += 1;
+            elif globs['run-mode'] == 'gt':
+                globs['gt-loci'] += 1;
             # If the run mode is adaptive, partition loci with more than 1/3 of nodes with low sCF to the gene tree model and all others
             # to the species tree model
             ## Partition the sequences based on scf
@@ -564,7 +585,7 @@ def scf(globs):
         ## End imap locus loop
     ## End pool
 
-    step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(num_st) + " st, " + str(num_gt) + " gt loci.", full_update=True);
+    step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(globs['st-loci'] ) + " st, " + str(globs['gt-loci'] ) + " gt loci.", full_update=True);
     # Status update
     
     step = "Averaging sCF per node";

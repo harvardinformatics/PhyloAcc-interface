@@ -5,6 +5,8 @@
 
 import sys
 import os
+import math
+import time
 import timeit
 import datetime
 import subprocess
@@ -131,6 +133,13 @@ def getOutTime():
 
 #############################################################################
 
+def getRunTimeNice():
+    now = datetime.datetime.now().strftime("%A %b %d, %Y at %H:%M:%S");
+    zone = time.tzname[time.localtime().tm_isdst];
+    return now + " " + zone;
+
+#############################################################################
+
 def getDate():
 # Function to get the date and time in a certain format.
     return datetime.datetime.now().strftime("%m.%d.%Y");
@@ -149,17 +158,68 @@ def getDateTime():
 
 #############################################################################
 
-def isPosInt(numstr, default=False):
+def getFooterDateTime():
+    now = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S");
+    zone = time.tzname[time.localtime().tm_isdst];
+    return now + " " + zone;
+
+#############################################################################
+
+def mean(data):
+# Calculates and returns the mean of a list of numbers.
+    return sum(data) / len(data);
+
+#############################################################################
+
+def median(data):
+# Calculates the median of a list of numbers    
+    data = sorted(data);
+    count = len(data);
+    if count % 2 == 0:
+        half_count = int(count / 2);
+        data1 = data[:half_count];
+        data2 = data[half_count:];
+
+        median = mean([data1[-1], data2[0]]);
+    else:
+        half_count = math.floor(count / 2);
+
+        data2 = data[half_count:];
+        median = data2[0];
+
+    return median;
+
+#############################################################################
+
+def isPosInt(numstr, default=False, minval=1, maxval=False):
 # Check if a string is a positive integer
     try:
         num = int(numstr);
     except:
         return default;
 
-    if num > 0:
-        return num;
-    else:
+    if num < minval:
         return default;
+    elif maxval and num > maxval:
+        return default;
+    else:
+        return num;
+
+#############################################################################
+
+def isPosFloat(numstr, default=False, minval=0.0, maxval=False):
+# Check if a string is a positive float
+    try:
+        num = float(numstr);
+    except:
+        return default;
+
+    if num < minval:
+        return default;
+    elif maxval and num > maxval:
+        return default;
+    else:
+        return True;
 
 #############################################################################
 
@@ -182,6 +242,62 @@ def spacedOut(string, totlen, sep=" "):
 # Properly adds spaces to the end of a message to make it a given length
     spaces = sep * (totlen - len(string));
     return string + spaces;
+
+#############################################################################
+
+def coreCol(pal="default", numcol=4, offset=0, info=False):
+# Custom color palettes.
+    palette_list = ["default", "trek", "trekdark", "wilke"]
+
+    if pal not in palette_list:
+        print("# * CORECOL: Requested palette not in palette list.\n");
+        print("# * CORECOL: Requested:    ", pal, "\n");
+        print("# * CORECOL: Palette list: ", palette_list, "\n");
+        print("# * CORECOL: Setting palette to 'default'\n");
+        pal = "default"
+
+
+    if pal == "default":
+        col = ["#db6d00", "#004949", "#006ddb", "#920000", "#490092", "#6cb6ff", "#24ff24", "#fdb4da", "#ffff6d", "#009292", "#924900", "#000000"]
+    elif pal == "trek":
+        col = ["#4A508A", "#D89000", "#C44040", "#4d3d7e", "#6c465b", "#78736f", "#000000"]
+    elif pal == "trekdark":
+        col = ["#62121f", "#7d5811", "#174159", "#4d3d7e", "#6c465b", "#78736f", "#000000"]
+    elif pal=="wilke":
+        col = ["#e69f00", "#56b4e9", "#009e73", "#f0e442", "#0072b2", "#d55e00", "#cc79a7", "#000000"]
+
+    if numcol > len(col):
+        print("# * CORECOL: Not enough colors in selected palette:\n")
+        print("# * CORECOL: numcol     = ", numcol, "\n")
+        print("# * CORECOL: pal        = ", pal, "\n")
+        print("# * CORECOL: pal length = ", len(col), "\n")
+
+    return_col = col
+
+    offset_counter = offset
+    while offset_counter > 0:
+        return_col.append(return_col[0]);
+        # Copies first element at end
+
+        return_col = return_col[1:];
+        # Removes first element
+
+        offset_counter = offset_counter - 1
+
+    return_col = return_col[:numcol];
+ 
+    if info:
+        print("\n# CORECOL INFO\n")
+        print("# Palette list:               ", palette_list, "\n")
+        print("# Requested palette:          ", pal, "\n")
+        print("# Original colors:            ", col, "\n")
+        print("# Num colors in palette:      ", len(col), "\n")
+        print("# Num colors requested:       ", numcol, "\n")
+        print("# Offset:                     ", offset, "\n")
+        print("# Returned colors:            ", return_col, "\n")
+        print("# ------------------\n")
+
+    return(return_col)
 
 #############################################################################
 
@@ -335,6 +451,9 @@ def endProg(globs, interface=True):
 
     if interface and globs['scf-tree-written']:
         printWrite(globs['logfilename'], globs['log-v'], "# Concordance factor tree file:    " + globs['scftreefile']);
+
+    if globs['html-summary-written']:
+        printWrite(globs['logfilename'], globs['log-v'], "# HTML summary file:               " + globs['html-file']);
     # Stats files
 
     ####################
@@ -346,8 +465,7 @@ def endProg(globs, interface=True):
     elif interface:
         printWrite(globs['logfilename'], globs['log-v'], "#\n# PhyloAcc job files successfully generated");
         printWrite(globs['logfilename'], 1, "# Run the following command from the Phyloacc-interface directory:\n\n");
-        phyloacc_cmd = "snakemake -p -s " + os.path.abspath(globs['smk']) + " --configfile " + os.path.abspath(globs['smk-config']) + " --profile " + os.path.abspath(globs['profile-dir']) + " --dryrun"
-        printWrite(globs['logfilename'], 1, phyloacc_cmd + "\n\n");
+        printWrite(globs['logfilename'], 1, globs['smk-cmd'] + "\n\n");
         printWrite(globs['logfilename'], 1, "# Then, if everything looks right, remove --dryrun to execute");
         printWrite(globs['logfilename'], 1, "# You may also want to start your favorite terminal multiplexer (e.g. screen, tmux)");
     # Report error or success with snakemake command
