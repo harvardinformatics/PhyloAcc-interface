@@ -9,11 +9,17 @@
 lib/__pycache__/
 docs/scripts/lib/__pycache__/
 
+sim-data*
+phyloacc-job-files/
 data/
 old/
+sim-tree-astral.tre
 
 job-scripts/
 job_scripts/
 
 .snakemake
 snakemake-template.smk
+
+mammal-accelerated-elements-gt*
+ratite-adaptive-theta*

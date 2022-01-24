@@ -63,10 +63,10 @@ def readBed(filename, globs):
 
     if globs['bed-compression'] == "gz":
         reader = gzip.open;
-        readline = lambda l : l.decode().strip().split("\t");
+        lineread = lambda l : l.decode().strip().split("\t");
     elif globs['bed-compression'] == "none":
         reader = open;
-        readline = lambda l : l.strip().split("\t");
+        lineread = lambda l : l.strip().split("\t");
     # Read the lines of the file depending on the compression level
 
     bed_coords = {};
@@ -80,35 +80,37 @@ def readBed(filename, globs):
     # Flag to indicate whether the bed file contains locus IDs in the fourth column
     # Assume True, but check the first line for it below
 
-    for line in reader(filename):
-        line = readline(line);
-        # Parse the current line into a list
+    with reader(filename, "r") as bedfile:
+    #for line in gzip.open(filename, "rb"):
+        for line in bedfile:
+            line = lineread(line);
+            # Parse the current line into a list
 
-        if first:
-            if len(line) < 4:
-                locus_id = 1;
-                bed_id_field = False;
-            # If there is no ID column with locus IDs, just set a counter as the ID here and
-            # Set the id field flag to False
-            first = False;
-        # Check for an ID column in the first line
+            if first:
+                if len(line) < 4:
+                    locus_id = 1;
+                    bed_id_field = False;
+                # If there is no ID column with locus IDs, just set a counter as the ID here and
+                # Set the id field flag to False
+                first = False;
+            # Check for an ID column in the first line
 
-        if bed_id_field:
-            cur_locus = line[3];
-            if globs['id-file'] and cur_locus not in globs['locus-ids']:
-                continue;
-            # If the user provided and ID file to run a subset of loci in the input, check for
-            # the current ID in that list here. If it's not in that list, do not save the locus
-            # into the dictionary.
-        # Get the ID from the current line
-        else:
-            cur_locus = str(locus_id);
-            locus_id += 1;
-        # If there is no ID column, set the ID here and increment
+            if bed_id_field:
+                cur_locus = line[3];
+                if globs['id-file'] and cur_locus not in globs['locus-ids']:
+                    continue;
+                # If the user provided and ID file to run a subset of loci in the input, check for
+                # the current ID in that list here. If it's not in that list, do not save the locus
+                # into the dictionary.
+            # Get the ID from the current line
+            else:
+                cur_locus = str(locus_id);
+                locus_id += 1;
+            # If there is no ID column, set the ID here and increment
 
-        scaffold, start, end = line[0], line[1], line[2];
-        bed_coords[cur_locus] = { "scaff" : scaffold, "start" : int(start), "end" : int(end) };
-        # Get info from the current line and save it in the dictionary
+            scaffold, start, end = line[0], line[1], line[2];
+            bed_coords[cur_locus] = { "scaff" : scaffold, "start" : int(start), "end" : int(end) };
+            # Get info from the current line and save it in the dictionary
 
     return bed_coords;
 
@@ -197,7 +199,9 @@ def readSeq(globs):
         # step_start_time = PC.report_step(globs, step, False, "In progress...");
         # written = 0;
         # for aln in globs['alns']:
-        #     outdir = "simu_500_200_diffr_2-1";
+        #     outdir = "/n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/data/ratite_data/ratite-1000/";
+        #     if not os.path.isdir(outdir):
+        #         os.system("mkdir " + outdir);
         #     outfile = os.path.join(outdir, aln + ".fa");
         #     with open(outfile, "w") as of:
         #         for header in globs['alns'][aln]:
@@ -261,15 +265,21 @@ def locusAlnStats(locus_item):
     num_seqs = len(aln);
     aln_len = len(aln[list(aln.keys())[0]]);
 
-    cur_stats = { 'num-seqs' : num_seqs, 'length' : aln_len, 'variable-sites' : 0, 
+    cur_stats = { 'num-seqs' : num_seqs, 'length' : aln_len, 'avg-nogap-seq-len' : 0, 'variable-sites' : 0, 'unique-seqs' : 0,
                                         'informative-sites' : 0, 'num-sites-w-gap' : 0, 'num-sites-half-gap' : 0,
-                                        'num-seqs-half-gap' : 0 };
+                                        'num-seqs-half-gap' : 0, 'low-qual' : False, 'batch-type' : "NA" };
     # Initialize the stats dict for this locus
 
     half_aln_len = aln_len / 2;
     half_site_len = num_seqs / 2;
     # Compute half the alignment length and half the site length for the current locus.
     # Used to see if seqs and sites are half-gap or more
+
+    ungapped_seq_lens = [];
+    for seq in aln:
+        ungapped_seq_lens.append(len(aln[seq].replace("-", "")));
+    cur_stats['avg-nogap-seq-len'] = PC.mean(ungapped_seq_lens);
+    # Calculate the average sequence length without gaps for each sequence in the alignment
 
     for j in range(aln_len):
         site = "";
@@ -303,6 +313,14 @@ def locusAlnStats(locus_item):
         # Count whether this site contains a gap and, if so, whether more than half the sequences are a gap
     ## End site loop
 
+    cur_stats['num-unique-seqs'] = len(set(aln.values()));
+    # Count the number of unique sequences
+    # Could also count number of times each sequence occurs: https://stackoverflow.com/questions/30692655/counting-number-of-strings-in-a-list-with-python#30692666
+
+    if cur_stats['num-sites-half-gap'] > half_site_len or cur_stats['num-seqs-half-gap'] > half_site_len:
+        cur_stats['low-qual'] = True;
+    # Setting a flag for low quality sequence to be considered when estimating theta
+
     return locus, cur_stats;
 
 #############################################################################
@@ -310,104 +328,44 @@ def locusAlnStats(locus_item):
 def alnStats(globs):
     step = "Calculating alignment stats";
     step_start_time = PC.report_step(globs, step, False, "In progress...");
+    # Status update
 
     with globs['aln-pool'] as pool:
         for result in pool.imap(locusAlnStats, ((locus, globs['alns'][locus], globs['skip-chars']) for locus in globs['alns'])):
         # Loop over every locus in parallel to calculate stats
         # Have to do it this way so it doesn't terminate the pool for sCF calculations
 
-            globs['aln-stats'][result[0]] = result[1];
+            aln, stats = result;
+            globs['aln-stats'][aln] = stats;
             # Unpack the current result
 
+            if globs['run-mode'] == 'st':
+                globs['aln-stats'][aln]['batch-type'] = "st";
+            # With run mode st, all loci are run through the species tree model
+
+            elif globs['run-mode'] == 'gt':
+                globs['aln-stats'][aln]['batch-type'] = "gt";
+            # With run mode gt, all loci are run through the gene tree model
+            
+            if globs['aln-stats'][aln]['informative-sites'] == 0:
+                globs['no-inf-sites-loci'].append(aln);
+            # If the locus has no informative sites, add to the list here
+
+    sorted_aln_lens = sorted([ globs['aln-stats'][aln]['length'] for aln in globs['aln-stats'] ]);
+    globs['avg-aln-len'] = PC.mean(sorted_aln_lens);
+    globs['med-aln-len'] = PC.median(sorted_aln_lens);
+    # Sort alignment lengths and calculate summary stats
+
+    sorted_avg_seq_lens = sorted([ globs['aln-stats'][aln]['avg-nogap-seq-len'] for aln in globs['aln-stats'] ]);
+    globs['avg-nogap-seq-len'] = PC.mean(sorted_avg_seq_lens);
+    globs['med-nogap-seq-len'] = PC.median(sorted_avg_seq_lens);
+    # Sort average sequence lengths without gaps and calculate summary statistics
+
     step_start_time = PC.report_step(globs, step, step_start_time, "Success: " + str(len(globs['aln-stats'])) + " alignments processed");
+    if globs['no-inf-sites-loci']:
+        PC.printWrite(globs['logfilename'], globs['log-v'], "# INFO: " + str(len(globs['no-inf-sites-loci'])) + " loci have 0 informative sites and will be removed from the analysis.");
+    # Status update
 
     return globs;
 
 #############################################################################
-
-# read_seq = True;
-#     # We only want to read sequences that are tips in the input tree. This flag
-#     # keeps track of that
-
-#     # for line in reader(filename):
-#     #     line = readline(line);
-
-#     tot_lines = 22336350
-#     tot_lines_str = "22336350";
-#     i = 0;
-
-#     #for line in seqlines:
-#     with open(filename) as seqfile:
-#         for line in seqfile:
-#             if i % 1000 == 0:
-#                 print( str(i) + " / " + tot_lines_str + " (" + str((i / tot_lines) * 100) + ")")
-#             i += 1;
-#             line = line.strip();
-#             #line = readline(line);
-
-#             # if line in ["\n", ""]:
-#             #     continue;
-#             # Skip empty lines in the input
-
-#             if line[0] == ">":
-#                 curkey = line.replace(">", "");
-#                 print();
-#                 print(curkey);
-#                 seqdict[curkey] = "";
-#                 continue;
-
-#                 # print()
-#                 # print(curkey);
-#                 # if curkey in globs['tree-tips']:
-#                 #     read_seq = True;
-#                 #     seqdict[curkey] = "";
-#                 # else:
-#                 #     read_seq = False;
-#             # If the current line is a header, set that header as the current key and check
-#             # that it is a tip in the input tree
-#             #elif read_seq:
-#             seqdict[curkey] += line;
-#             # Otherwise, if the current header is a tip in the input tree the line contains 
-#             # sequence that should be added to the current header's sequence
-
-
-
-
-
-
-# for locus in globs['alns']:
-#         globs['aln-stats'][locus] = { 'num-seqs' : len(globs['alns'][locus]), 'length' : "NA", 'variable-sites' : 0, 
-#                                         'informative-sites' : 0, 'num-sites-w-gap' : 0, 'num-sites-half-gap' : 0};
-#         # Calculate some basic alignment statistics for each locus
-        
-#         globs['aln-stats'][locus]['length'] = len(globs['alns'][locus][list(globs['alns'][locus].keys())[0]]);
-#         # Get the length of the alignment from the first sequence
-
-#         for j in range(globs['aln-stats'][locus]['length']):
-#             site = "";
-#             for seq in globs['alns'][locus]:
-#                 site += globs['alns'][locus][seq][j];
-#             # Get each allele from each sequence as the site
-
-#             allele_counts = { allele : site.count(allele) for allele in site if allele not in globs['skip-chars'] };
-#             # Count the occurrence of each allele in the site
-
-#             if len(allele_counts) > 1:
-#                 globs['aln-stats'][locus]['variable-sites'] += 1;
-#                 # If there is more than one allele in the site, it is variable
-
-#                 multi_allele_counts = [ allele for allele in allele_counts if allele_counts[allele] >= 2 ];
-#                 # Count the number of allele present in at least 2 species
-
-#                 if len(multi_allele_counts) >= 2:
-#                     globs['aln-stats'][locus]['informative-sites'] += 1;
-#                 # If 2 or more alleles are present in 2 or more species, this site is informative
-
-#             if "-" in site:
-#                 globs['aln-stats'][locus]['num-sites-w-gap'] += 1;
-
-#                 if site.count("-") >= len(site) / 2:
-#                     globs['aln-stats'][locus]['num-sites-half-gap'] += 1;
-#             # Count whether this site contains a gap and, if so, whether more than half the sequences are a gap
-#         ## End site loop
-#     ## End locus loop

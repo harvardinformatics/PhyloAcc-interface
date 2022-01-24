@@ -1,12 +1,14 @@
-#!/usr/bin/env python3
-#############################################################################
-# This is the python front-end for PhyloAcc, a Bayesian substitution rate
-# estimation program for conserved non-coding genomic elements. This script
-# will handle user inputs, model selection, and batching jobs
-#
-# Gregg Thomas
-# Summer 2021
-#############################################################################
+#!/bin/bash
+
+time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-adaptive-theta -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 --overwrite --theta -r adaptive
+time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-adaptive -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 -l sim-tree-astral.tre --overwrite -r adaptive
+time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-adaptive -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 --overwrite
+time -p python phyloacc_interface.py -d /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-gt -t "strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid" -g "allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar" -part "holy-info,holy-cow,holy-smokes" -n 24 -p 4 -j 12 -l sim-tree-astral.tre --overwrite -r gt
+time -p python phyloacc_interface.py -d data/simu_500_200_diffr_2-1/ -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-gt-theta -t strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid -g allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar -part holy-info,holy-cow,holy-smokes -n 24 -p 4 -j 12 --theta --overwrite -r gt
+
+##########################
+## OLD CMDS
+##########################
 
 # Simulated dataset:
 
@@ -75,78 +77,8 @@
 # python phyloacc.py -a data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concatenated_v2.fasta.gz -b data/ratite_data/07_cnees/datasets/original_dataset_v2/allspecies_cnee_concat_partitions.bed.gz -m data/ratite_data/07_cnees/datasets/original_dataset_v2/neut_final_orig_v2.named.mod -o /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/test-real-all-b10000/ -t strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid -g allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar -n 48 -p 48 -j 48 -batch 10000 -part holy-info,holy-cow,holy-smokes,shared -time 4 --overwrite
 # Total execution time:            22006.353 seconds.
 
-#############################################################################
+##########################
 
-import sys
-import os
-import lib.core as PC
-import lib.params as params
-import lib.opt_parse as OP
-import lib.seq as SEQ
-import lib.tree as TREE
-import lib.output as OUT
-import lib.batch as BATCH
+# Mammals
 
-#############################################################################
-
-if __name__ == '__main__':
-# Main is necessary for multiprocessing to work on Windows.
-
-    globs = params.init();
-    # Get the global params as a dictionary.
-    
-    print("\n" + " ".join(sys.argv) + "\n");
-
-    if any(v in sys.argv for v in ["--version", "-version", "--v", "-v"]):
-        print("# PhyloAcc version " + globs['interface-version'] + " released on " + globs['releasedate'])
-        sys.exit(0);
-    # The version option to simply print the version and exit.
-    # Need to get actual PhyloAcc version for this, and not just the interface version.
-
-    print("#");
-    print("# " + "=" * 125);
-    print(PC.welcome());
-    if "-h" not in sys.argv:
-        print("    Bayesian rate analysis of conserved");
-        print("       non-coding genomic elements\n")
-    # A welcome banner.
-
-    globs = OP.optParse(globs);
-    # Getting the input parameters from optParse.
-
-    if globs['info']:
-        print("# --info SET. EXITING AFTER PRINTING PROGRAM INFO...\n#")
-        sys.exit(0);
-    if globs['norun']:
-        print("# --norun SET. EXITING AFTER PRINTING OPTIONS INFO...\n#")
-        sys.exit(0);
-    # Early exit options
-
-    step_start_time = PC.report_step(globs, "", "", "", start=True);
-    # Initialize the step headers
-
-    globs = SEQ.readSeq(globs);
-    # Library to read input sequences
-
-    globs = SEQ.alnStats(globs);
-    # Calculate some basic alignment stats
-
-    globs = TREE.scf(globs);
-    # Calculate avg. sCF per locus
-
-    globs = OUT.writeAlnStats(globs);
-    # Write out the alignment summary stats
-
-    globs = OUT.writeSCFStats(globs);
-    # Write out the sCF summary stats
-
-    globs = BATCH.genJobFiles(globs);
-    # Generates the locus specific job files (aln, bed, config, etc.) for phyloacc
-
-    globs = BATCH.writeSnakemake(globs);
-    # Generates the snakemake config and cluster profile
-
-    PC.endProg(globs);
-
-#############################################################################
-
+# time -p python phyloacc_interface.py -d /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/gt-test-mammals/seq/ -m /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/gt-test-mammals/param-files/mammal_acc1.mod -l /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/gt-test-mammals/param-files/tree_coal_unit.mod -t "triMan1;lepWed1;odoRosDiv1;orcOrc1;turTru2" -g "monDom5;sarHar1;macEug2;ornAna1" -r gt -burnin 750 -mcmc 1500 -n 24 -p 4 -j 40 -part "holy-info,holy-cow,holy-smokes" -o mammal-test -phyloacc "CONSERVE_PRIOR_B 0.1;ACCE_PRIOR_A 4; ACCE_PRIOR_B 0.5; CONSERVE_PROP 0.5; INIT_CONSERVE_RATE 0.3; WL 1; CONSTOMIS 0.5; GAP_PROP 0.999; BR_SAMPLE_THRESHOLD 0.007; THIN 4; SEED 123"

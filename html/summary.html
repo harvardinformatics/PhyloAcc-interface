@@ -1,0 +1,138 @@
+
+<!doctype html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">	
+<link rel='shortcut icon' href='img/favicon.ico' type='image/x-icon'/ >
+<link type="text/css" rel="stylesheet" href="css/grid.css"  media="screen,projection" />
+<link type="text/css" rel="stylesheet" href="css/summary.css"  media="screen,projection" />
+<link type="text/css" rel="stylesheet" href="css/tables.css"  media="screen,projection" />
+<link href="https://fonts.googleapis.com/css?family=Lato:300" rel="stylesheet"> 
+<title>PhyloAcc pre-run stats</title>
+</head>
+
+<body>
+    <div class="row" id="top_grid">
+        <div class="col-2-24" id="margin"></div>
+        <div class="col-20-24" id="main_header">PhyloAcc pre-run stats</div>
+        <div class="col-2-24" id="margin"></div>
+    </div>
+
+    <div class="row" id="main-container">
+        <div class="col-4-24" id="side-nav">
+            <div id="nav-header">Navigation</div>
+
+            <a class="nav-link" href="#run-info">1. Run info</a>
+            <a class="nav-link" href="#locus-lens">2. Distribution of locus lengths</a>
+            <a class="nav-link" href="#informative-sites">3. Distribution of informative sites per locus</a>
+            <a class="nav-link" href="#proportion-informative-sites">4. Proportion of informative sites per locus</a>
+            
+        </div>
+        <div class="col-20-24" id="main-content">
+
+            <div class="row content-row" id="run-info-row">
+                <div class="col-24-24 content-col" id="run-info">
+                    <div class="section-header">1. Run info ()</div>
+                    <p>The PhyloAcc interface was run on <code>01.03.2022 | 12:28:49</code> as follows:</p>
+                    
+                    <div class="code-focus">
+                    <pre>
+phyloacc_interface.py -d /n/holylfs05/LABS/informatics/Users/gthomas/PhyloAcc-interface-data/data/simu_500_200_diffr_2-1 -m PhyloAcc/Data/ratite/neut_ver3_final.named.mod -o test-plot -t strCam;rhePen;rheAme;casCas;droNov;aptRow;aptHaa;aptOwe;anoDid -g allMis;allSin;croPor;gavGan;chrPic;cheMyd;anoCar -part holy-info,holy-cow,holy-smokes -n 24 -p 4 -j 12
+                        </pre>
+                    </div>
+
+                    <div class="list-container">
+                        <ul>
+                            <li>
+                                1000 alignments were processed
+                            </li>
+                            <li>
+                                43 species present
+                            </li>
+                        </ul>
+                    </div>
+
+                    <p>See the <a href="test-plot.log">full log file</a> for more info.</p>
+
+                    <p>Below are some summary plots. Raw data is also available in CSV format in the <a href="phyloacc-aln-stats.csv">alignment stats file</a>.</p>
+
+                </div>
+            </div>
+
+            <div class="line"></div>
+
+            <div class="row content-row" id="run-info-row">
+                <div class="col-24-24 content-col" id="locus-lens">
+                    <div class="section-header">2. Distribution of locus lengths</div>
+
+                    <div class="row img-row" id="locus-lens-container-row">
+                        <div class="col-6-24 margin"></div>
+                        <div class="col-12-24 img-container" id="locus-lens-container">
+                            <img id="locus-lens-img" src="plots/locus-len-hist.png">
+                        </div>
+                        <div class="col-6-24 margin"></div>
+                    </div>
+
+                    <div class="list-container">
+                        <ul>
+                            <li>
+                                Avg. locus length =
+                            </li>
+                            <li>
+                                Median locus length = 
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="line"></div>
+
+            <div class="row content-row" id="run-info-row">
+                <div class="col-24-24 content-col" id="informative-sites">
+                    <div class="section-header">3. Distribution of informative sites per locus</div>
+
+                    <div class="row img-row" id="informative-sites-container-row">
+                        <div class="col-6-24 margin"></div>
+                        <div class="col-12-24 img-container" id="informative-sites-container">
+                            <img id="informative-sites-img" src="plots/informative-sites-hist.png">
+                        </div>
+                        <div class="col-6-24 margin"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="line"></div>
+
+            <div class="row content-row" id="run-info-row">
+                <div class="col-24-24 content-col" id="proportion-informative-sites">
+                    <div class="section-header">4. Proportion of informative sites per locus</div>
+
+                    <div class="row img-row" id="proportion-informative-sites-container-row">
+                        <div class="col-6-24 margin"></div>
+                        <div class="col-12-24 img-container" id="proportion-informative-sites-container">
+                            <img id="proportion-informative-sites-img" src="plots/informative-sites-frac-hist.png">
+                        </div>
+                        <div class="col-6-24 margin"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="line"></div>
+
+        </div>
+
+    </div>
+
+
+    <div class="row" id="footer">
+    <div class="col-1">
+        <div id="footer_text">
+            <center>Page generated by the <a href="https://github.com/harvardinformatics/PhyloAcc-interface" target="_blank">PhyloAcc interface</a> | Page built: 08/19/2021 19:35:44 Mountain Daylight Time</center>
+        </div>
+    </div>
+
+</body>

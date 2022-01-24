@@ -5,6 +5,7 @@
 
 import os
 import lib.core as PC
+import lib.tree as TREE
 
 #############################################################################
 
@@ -49,6 +50,13 @@ def writeAlnStats(globs):
             # Extract the stats for the current locus and write to the file
         ## End locus loop
     ## Close file
+
+    if globs['no-inf-sites-loci']:
+        globs['no-inf-loci-file'] = os.path.join(globs['outdir'], globs['no-inf-loci-file']);
+        with open(globs['no-inf-loci-file'], "w") as outfile:
+            for locus in globs['no-inf-sites-loci']:
+                outfile.write(locus + "\n");
+    # Write the loci with no informative sites to a file
 
     step_start_time = PC.report_step(globs, step, step_start_time, "Success: align stats written");
     globs['aln-stats-written'] = True;
@@ -101,15 +109,18 @@ def writeSCFStats(globs):
     globs['scftreefile'] = os.path.join(globs['outdir'], globs['scftreefile']);
     # Add the output directory to the scftreefile name
 
-    labeled_scf_tree = globs['labeled-tree'];
+    globs['scf-labeled-tree'] = globs['labeled-tree'];
     # Get the labeled input tree from treeParse
 
+    globs['scf-labeled-tree'] = TREE.addBranchLength(globs['scf-labeled-tree'], globs['tree-dict']);
+    # Add the branche lengths back onto the tree
+
     for node in globs['scf']:
-        labeled_scf_tree = labeled_scf_tree.replace(node, node + "_" + str(round(globs['scf'][node]['avg-quartet-scf'], 2)));
+        globs['scf-labeled-tree'] = globs['scf-labeled-tree'].replace(node, node + "_" + str(round(globs['scf'][node]['avg-quartet-scf'], 2)));
     # For every node in the tree, add the averaged scf value over all loci to the label
 
     with open(globs['scftreefile'], "w") as outfile:
-        outfile.write(labeled_scf_tree);
+        outfile.write(globs['scf-labeled-tree']);
     # Write the scf labeled tree to a file
 
     step_start_time = PC.report_step(globs, step, step_start_time, "Success: sCF tree written");

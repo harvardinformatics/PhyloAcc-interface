@@ -6,3 +6,17 @@
 - Now track low sCF nodes per locus
 - Removed locus_scf averaging within locusSCF function (now takes place in imap loop)
 - Better status updates during scf calculations
+
+11.08.2021
+- Changed name of main script from "phyloacc.py" to "phyloacc_interface.py"
+- Added post-processing script, phyloacc_post.py
+
+11.20.2021
+- Added run mode option (-r) to let user specify whether to use the species tree model, gene tree model, or adaptively choose based on sCF
+- Added --theta and -l options for the input to the gene tree model, which requires a tree with branche lengths in coalescent units. --theta adds to the snakemake pipeline to generate this tree with IQtree and ASTRAL. -l lets the user specify the coalescent tree
+- Added the gene tree model rule to the snakemake template
+- Changed the resource allocation options so that -p specifies the processes per job (this was previously total number of processes available)
+
+01.24.2021
+- Expanded input options to accomodate more PhyloAcc gene tree options
+- Added summary plot and HTML generation to interface
