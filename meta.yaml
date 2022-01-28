@@ -4,7 +4,7 @@
 # Using the name variable with the URL in line 14 is convenient
 # when copying and pasting from another recipe, but not really needed.
 {% set name = "PhyloAcc" %}
-{% set version = "b2.0.0" %}
+{% set version = "0.1.0-beta" %}
 {% set sha256 = "368d7839ef59517a461d025fb276d610df046738a281b9a9abf07ee637c644d8" %}
 
 package:
@@ -14,13 +14,14 @@ package:
 source:
   #url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
   #url: file:///mnt/c/bin/PhyloAcc-interface.tar.gz
-  url: file://C:\bin\PhyloAcc-interface.tar.gz
+  #url: file://C:\bin\PhyloAcc-interface.tar.gz
   #path: /mnt/c/bin/PhyloAcc-interface.tar.gz
   # If getting the source from GitHub, remove the line above,
   # uncomment the line below, and modify as needed. Use releases if available:
   # url: https://github.com/simplejson/simplejson/releases/download/{{ version }}/simplejson-{{ version }}.tar.gz
   # and otherwise fall back to archive:
   # url: https://github.com/simplejson/simplejson/archive/v{{ version }}.tar.gz
+  url: https://github.com/harvardinformatics/{{ name }}-interface/archive/refs/tags/v{{ version }}.tar.gz
   sha256: {{ sha256 }}
   # sha256 is the preferred checksum -- you can get it for a file with:
   #  `openssl sha256 <file name>`.
