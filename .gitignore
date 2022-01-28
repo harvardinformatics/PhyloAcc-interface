@@ -23,3 +23,14 @@ snakemake-template.smk
 
 mammal-accelerated-elements-gt*
 ratite-adaptive-theta*
+
+src/PhyloAcc/Data/
+src/PhyloAcc/example_output/
+src/PhyloAcc/mammal_result/
+src/PhyloAcc/R/
+src/PhyloAcc/ratite_result/
+src/PhyloAcc/Simulation_mammal/
+src/PhyloAcc/Simulation_ratite/
+src/PhyloAcc/V2_GBGC/
+src/PhyloAcc/Simulation.md
+src/PhyloAcc/_config.yml
