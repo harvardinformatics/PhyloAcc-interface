@@ -454,7 +454,7 @@ cat(paste("# Median (MSC simulated): ", median(msc_sim_quartets$scf)))
 # cat(paste("# Median (ratite): ", median(ratite_data$node.scf.avg, na.rm=T)))
 ```
 
-## sCF per quartet
+## sCF per branch
 
 ```{r branch-scf-dists, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
 sim_quartets_branch$scf = sim_quartets_branch$concordant.sites / sim_quartets_branch$decisive.sites
