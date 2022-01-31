@@ -3,8 +3,8 @@ TARGET=PhyloAcc
 
 ifeq ($(OS),Windows_NT)
 	CXX=g++
-	GSL_INCLUDE=${LIBRARY_INC}/include/
-	GSL_LIB=${LIBRARY_LIB}/lib/
+	GSL_INCLUDE=${LIBRARY_INC}
+	GSL_LIB=${LIBRARY_LIB}
 # GSL paths with the conda environment prefix
 else
 	CXX=g++-7
@@ -26,6 +26,7 @@ endif
 $(info $$CXX is [${CXX}])
 # Report the compiler used
 
+$(info $$PREFIX is [${PREFIX}])
 $(info $$GSL_INCLUDE is [${GSL_INCLUDE}])
 $(info $$GSL_LIB is [${GSL_LIB}])
 
