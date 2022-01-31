@@ -5,7 +5,7 @@ ifeq ($(OS),Windows_NT)
 	CXX=g++
 else
 	CXX=g++-7
-
+endif
 
 # ifeq ($(shell uname),Linux Darwin)
 # 	CXX=g++-7
