@@ -26,6 +26,9 @@ endif
 $(info $$CXX is [${CXX}])
 # Report the compiler used
 
+$(info $$GSL_INCLUDE is [${GSL_INCLUDE}])
+$(info $$GSL_LIB is [${GSL_LIB}])
+
 CFLAGS=-Wall -g -O2 -std=c++11
 LDFLAGS=-lgsl -lm -lgslcblas -larmadillo -fopenmp
 # Options for the g++ commands
