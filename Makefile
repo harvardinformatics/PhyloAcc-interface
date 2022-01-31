@@ -3,8 +3,14 @@ TARGET=PhyloAcc
 
 ifeq ($(OS),Windows_NT)
 	CXX=g++
+	GSL_INCLUDE=${LIBRARY_INC}/include/
+	GSL_LIB=${LIBRARY_LIB}/lib/
+# GSL paths with the conda environment prefix
 else
 	CXX=g++-7
+	GSL_INCLUDE=${PREFIX}/include/
+	GSL_LIB=${PREFIX}/lib/
+# GSL paths with the conda environment prefix
 endif
 
 # ifeq ($(shell uname),Linux Darwin)
@@ -24,10 +30,6 @@ CFLAGS=-Wall -g -O2 -std=c++11
 LDFLAGS=-lgsl -lm -lgslcblas -larmadillo -fopenmp
 # Options for the g++ commands
 
-GSL_INCLUDE=${PREFIX}/include/
-GSL_LIB=${PREFIX}/lib/
-# GSL paths with the conda environment prefix
-
 SRC_DIR=src/$(TARGET)/SRC
 SRCS=$(SRC_DIR)/*.cpp
 INCLUDES=$(SRC_DIR)/*.h $(SRC_DIR)/*.hpp
@@ -46,7 +48,12 @@ $(TARGET): $(SRCS) $(INCLUDES)
 
 .PHONY: install
 install: $(TARGET)
+ifeq ($(OS),Windows_NT)
+	cp $< $(LIBRARY_BIN)/$(TARGET)
+# GSL paths with the conda environment prefix
+else
 	cp $< $(PREFIX)/bin/$(TARGET)
+endif
 # Command to install by moving binary
 
 .PHONY: uninstall
