@@ -1,12 +1,12 @@
 TARGET=PhyloAcc
 # The name of the compiled binary
 
-# ifeq ($(shell uname),Darwin)
-# 	CXX=g++-7
-# else
-# 	CXX=g++
-# endif
-CXX=g++-7
+ifeq ($(shell uname),Linux Darwin)
+	CXX=g++-7
+else
+	CXX=g++
+endif
+#CXX=g++-7
 # Which compiler to use.
 # Note: g++ 5.4 resulted in several errors while compiling: SRC/bpp_c2.cpp:345:12: error: ‘::isnan’ has not been declared
 # Switched to g++-7

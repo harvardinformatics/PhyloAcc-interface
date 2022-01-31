@@ -4,8 +4,8 @@
 # Using the name variable with the URL in line 14 is convenient
 # when copying and pasting from another recipe, but not really needed.
 {% set name = "PhyloAcc" %}
-{% set version = "0.1.0-beta" %}
-{% set sha256 = "368d7839ef59517a461d025fb276d610df046738a281b9a9abf07ee637c644d8" %}
+{% set version = "0.1.0" %}
+{% set sha256 = "a7be709e66a60a066a4d887201d35b5d864d74ab020a9cd39f8ff085b2bb8a2c" %}
 
 package:
   name: {{ name|lower }}
@@ -21,7 +21,7 @@ source:
   # url: https://github.com/simplejson/simplejson/releases/download/{{ version }}/simplejson-{{ version }}.tar.gz
   # and otherwise fall back to archive:
   # url: https://github.com/simplejson/simplejson/archive/v{{ version }}.tar.gz
-  url: https://github.com/harvardinformatics/{{ name }}-interface/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/harvardinformatics/{{ name }}-interface/archive/refs/tags/v{{ version }}-beta.tar.gz
   sha256: {{ sha256 }}
   # sha256 is the preferred checksum -- you can get it for a file with:
   #  `openssl sha256 <file name>`.
