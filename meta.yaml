@@ -12,21 +12,29 @@ package:
   version: {{ version }}
 
 source:
-  #url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
   #url: file:///mnt/c/bin/PhyloAcc-interface.tar.gz
+  # Local linux build
+
   #url: file://C:\bin\PhyloAcc-interface.tar.gz
   #path: /mnt/c/bin/PhyloAcc-interface.tar.gz
+  # Local windows build (doesn't work)
+
   # If getting the source from GitHub, remove the line above,
   # uncomment the line below, and modify as needed. Use releases if available:
-  # url: https://github.com/simplejson/simplejson/releases/download/{{ version }}/simplejson-{{ version }}.tar.gz
-  # and otherwise fall back to archive:
-  # url: https://github.com/simplejson/simplejson/archive/v{{ version }}.tar.gz
-  url: https://github.com/harvardinformatics/{{ name }}-interface/archive/refs/tags/v{{ version }}-beta.tar.gz
-  sha256: {{ sha256 }}
+
+  #url: https://github.com/harvardinformatics/{{ name }}-interface/archive/refs/tags/v{{ version }}-beta.tar.gz
+  #sha256: {{ sha256 }}
   # sha256 is the preferred checksum -- you can get it for a file with:
   #  `openssl sha256 <file name>`.
   # You may need the openssl package, available on conda-forge:
   #  `conda install openssl -c conda-forge``
+  # Remote release build
+
+  git_url: https://github.com/harvardinformatics/PhyloAcc-interface.git
+  git_tag: conda-dev
+  # Remote source build
+
+
 
 build:
   # Uncomment the following line if the package is pure Python and the recipe is exactly the same for all platforms.
