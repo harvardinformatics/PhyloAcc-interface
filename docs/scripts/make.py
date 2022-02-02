@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser(description="Gets stats from a bunch of abyss a
 parser.add_argument("--all", dest="all", help="Build all pages", action="store_true", default=False);
 parser.add_argument("--index", dest="index", help="Without --all: build index.html. With --all: exlude index.html", action="store_true", default=False);
 parser.add_argument("--cf", dest="cf", help="Without --all: build cf.html. With --all: exlude cf.html", action="store_true", default=False);
+parser.add_argument("--mammals", dest="mammals", help="Without --all: build mammals.html. With --all: exlude mammals.html", action="store_true", default=False);
 parser.add_argument("--people", dest="people", help="Without --all: build people.html. With --all: exlude people.html", action="store_true", default=False);
 parser.add_argument("--links", dest="links", help="Without --all: build links.html. With --all: exlude links.html", action="store_true", default=False);
 args = parser.parse_args();
@@ -20,6 +21,7 @@ os.chdir("generators");
 pages = {
     'index' : args.index,
     'cf' : args.cf,
+    'mammals' : args.mammals,
     'people' : args.people,
     'links' : args.links
 }
@@ -32,6 +34,9 @@ if pages['index']:
 
 if pages['cf']:
     os.system("Rscript cf_generator.r");
+
+if pages['mammals']:
+    os.system("Rscript mammals_generator.r");
 
 if pages['people']:
     os.system("python people_generator.py");
