@@ -1,12 +1,24 @@
 TARGET=PhyloAcc
 # The name of the compiled binary
 
-# ifeq ($(shell uname),Darwin)
+ifeq ($(OS),Windows_NT)
+	CXX=g++
+	GSL_INCLUDE=${LIBRARY_INC}
+	GSL_LIB=${LIBRARY_LIB}
+# GSL paths with the conda environment prefix
+else
+	CXX=g++-7
+	GSL_INCLUDE=${PREFIX}/include/
+	GSL_LIB=${PREFIX}/lib/
+# GSL paths with the conda environment prefix
+endif
+
+# ifeq ($(shell uname),Linux Darwin)
 # 	CXX=g++-7
 # else
 # 	CXX=g++
 # endif
-CXX=g++-7
+#CXX=g++-7
 # Which compiler to use.
 # Note: g++ 5.4 resulted in several errors while compiling: SRC/bpp_c2.cpp:345:12: error: ‘::isnan’ has not been declared
 # Switched to g++-7
@@ -14,13 +26,13 @@ CXX=g++-7
 $(info $$CXX is [${CXX}])
 # Report the compiler used
 
+$(info $$PREFIX is [${PREFIX}])
+$(info $$GSL_INCLUDE is [${GSL_INCLUDE}])
+$(info $$GSL_LIB is [${GSL_LIB}])
+
 CFLAGS=-Wall -g -O2 -std=c++11
 LDFLAGS=-lgsl -lm -lgslcblas -larmadillo -fopenmp
 # Options for the g++ commands
-
-GSL_INCLUDE=${PREFIX}/include/
-GSL_LIB=${PREFIX}/lib/
-# GSL paths with the conda environment prefix
 
 SRC_DIR=src/$(TARGET)/SRC
 SRCS=$(SRC_DIR)/*.cpp
@@ -40,7 +52,12 @@ $(TARGET): $(SRCS) $(INCLUDES)
 
 .PHONY: install
 install: $(TARGET)
+ifeq ($(OS),Windows_NT)
+	cp $< $(LIBRARY_BIN)/$(TARGET)
+# GSL paths with the conda environment prefix
+else
 	cp $< $(PREFIX)/bin/$(TARGET)
+endif
 # Command to install by moving binary
 
 .PHONY: uninstall
