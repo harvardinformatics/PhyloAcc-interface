@@ -58,7 +58,7 @@ data = merge(data, elem_lik, by="run.id")
 ```{r acc-summary, out.width="50%", fig.align = "center", warning=FALSE}
 
 data$acc = FALSE
-data$acc[data$logBF1 > 10 & data$logBF2 > 1] = TRUE
+data$acc[data$logBF1 > 5 & data$logBF2 > 5] = TRUE
 
 total_elem = nrow(data)
 acc_elem = nrow(subset(data, acc==TRUE))
@@ -98,9 +98,9 @@ for(i in 1:nrow(data)){
 
 ## BF1
 
-```{r bf1-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=6}
+```{r bf1-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
 
-p = ggplot(subset(data, logBF1 < 200), aes(x=logBF1, y=rf, color=acc)) +
+p1 = ggplot(subset(data, logBF1 < 200), aes(x=logBF1, y=rf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
@@ -112,15 +112,34 @@ p = ggplot(subset(data, logBF1 < 200), aes(x=logBF1, y=rf, color=acc)) +
   bartheme() +
   theme(legend.position="bottom",
         legend.title=element_text())
+#print(p1)
+
+p2 = ggplot(subset(data, logBF1 < 20 & logBF1 > -5), aes(x=logBF1, y=rf, color=acc)) +
+  geom_point(size=2, alpha=0.3) +
+  #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
+  #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  labs(color="Accelerated?") +
+  #scale_y_continuous(expand=c(0,0)) +
+  xlab("log BF1") +
+  ylab("") +
+  bartheme() +
+  theme(legend.position="bottom",
+        legend.title=element_text())
+#print(p2)
+
+p3 = plot_grid(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"), ncol=2)
+pleg = get_legend(p1)
+p = plot_grid(p3, pleg, ncol=1, rel_heights=c(1, .1))
 print(p)
 
 ```
 
 ## BF2
 
-```{r bf2-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=6}
+```{r bf2-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
 
-p = ggplot(subset(data, logBF2 > -200), aes(x=logBF2, y=rf, color=acc)) +
+p1 = ggplot(subset(data, logBF2 > -2), aes(x=logBF2, y=rf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
@@ -132,17 +151,36 @@ p = ggplot(subset(data, logBF2 > -200), aes(x=logBF2, y=rf, color=acc)) +
   bartheme() +
   theme(legend.position="bottom",
         legend.title=element_text())
+#print(p1)
+
+p2 = ggplot(subset(data, logBF2 > -2 & logBF2 < 50), aes(x=logBF2, y=rf, color=acc)) +
+  geom_point(size=2, alpha=0.3) +
+  #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
+  #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  labs(color="Accelerated?") +
+  #scale_y_continuous(expand=c(0,0)) +
+  xlab("log BF2") +
+  ylab("") +
+  bartheme() +
+  theme(legend.position="bottom",
+        legend.title=element_text())
+#print(p2)
+
+p3 = plot_grid(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"), ncol=2)
+pleg = get_legend(p1)
+p = plot_grid(p3, pleg, ncol=1, rel_heights=c(1, .1))
 print(p)
 
 ```
 
 ## BF1 / BF2
 
-```{r bf-ratio-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=6}
+```{r bf-ratio-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
 
 data$bf.ratio = data$logBF1 / data$logBF2
 
-p = ggplot(subset(data, bf.ratio < 10 & bf.ratio > -10), aes(x=bf.ratio, y=rf, color=acc)) +
+p1 = ggplot(subset(data, bf.ratio < 10 & bf.ratio > -10), aes(x=bf.ratio, y=rf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
@@ -154,10 +192,28 @@ p = ggplot(subset(data, bf.ratio < 10 & bf.ratio > -10), aes(x=bf.ratio, y=rf, c
   bartheme() +
   theme(legend.position="bottom",
         legend.title=element_text())
+#print(p1)
+
+p2 = ggplot(subset(data, bf.ratio < 5 & bf.ratio > -2), aes(x=bf.ratio, y=rf, color=acc)) +
+  geom_point(size=2, alpha=0.3) +
+  #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
+  #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  labs(color="Accelerated?") +
+  #scale_y_continuous(expand=c(0,0)) +
+  xlab("log BF1 / log BF2") +
+  ylab("") +
+  bartheme() +
+  theme(legend.position="bottom",
+        legend.title=element_text())
+#print(p2)
+
+p3 = plot_grid(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"), ncol=2)
+pleg = get_legend(p1)
+p = plot_grid(p3, pleg, ncol=1, rel_heights=c(1, .1))
 print(p)
 
 ```
-
 
 
 [< Back ](index.html)
