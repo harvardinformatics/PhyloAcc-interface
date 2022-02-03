@@ -212,7 +212,7 @@
         <ul class="authors">
           <li class="divider"></li>
                                 <li><span><i class="glyphicon glyphicon-user"></i> <a href="https://gwct.github.io/">gwct</a></span></li>
-                                         <li><span><i class="glyphicon glyphicon-calendar"></i> 02/02/2022 14:27:43 EST</span></li>
+                                         <li><span><i class="glyphicon glyphicon-calendar"></i> 02/03/2022 10:40:24 EST</span></li>
                   </ul>     
       </div>
       <div class="book-body fixed">
@@ -271,6 +271,7 @@
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>data <span class="ot">=</span> <span class="fu">merge</span>(data, elem_lik, <span class="at">by=</span><span class="st">&quot;run.id&quot;</span>)</span></code></pre></div>
 <div id="summary" class="section level1" number="1">
 <h1 number="1"><span class="header-section-number">1</span> Summary</h1>
+<p>Elements are said to be accelerated if logBF1 &gt; 5 and logBF2 &gt; 5.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>acc <span class="ot">=</span> <span class="cn">FALSE</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>acc[data<span class="sc">$</span>logBF1 <span class="sc">&gt;</span> <span class="dv">5</span> <span class="sc">&amp;</span> data<span class="sc">$</span>logBF2 <span class="sc">&gt;</span> <span class="dv">5</span>] <span class="ot">=</span> <span class="cn">TRUE</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>

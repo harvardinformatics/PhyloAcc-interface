@@ -55,6 +55,8 @@ data = merge(data, elem_lik, by="run.id")
 
 # Summary
 
+Elements are said to be accelerated if logBF1 > 5 and logBF2 > 5.
+
 ```{r acc-summary, out.width="50%", fig.align = "center", warning=FALSE}
 
 data$acc = FALSE
