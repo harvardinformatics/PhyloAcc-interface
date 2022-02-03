@@ -24,6 +24,8 @@ library(cowplot)
 library(phangorn)
 library(ape)
 library(kableExtra)
+library(ggbeeswarm)
+library(ggsignif)
 library(here)
 source("../lib/design.r")
 ```
@@ -59,11 +61,11 @@ Elements are said to be accelerated if logBF1 > 5 and logBF2 > 5.
 
 ```{r acc-summary, out.width="50%", fig.align = "center", warning=FALSE}
 
-data$acc = FALSE
-data$acc[data$logBF1 > 5 & data$logBF2 > 5] = TRUE
+data$acc = "Not accelerated"
+data$acc[data$logBF1 > 5 & data$logBF2 > 5] = "Accelerated"
 
 total_elem = nrow(data)
-acc_elem = nrow(subset(data, acc==TRUE))
+acc_elem = nrow(subset(data, acc=="Accelerated"))
 prop_acc_elem = acc_elem / total_elem
 
 table_data = data.frame("Category"=c("Total elements", "Accelerated elements", "Proportion accelerated"), "Value"=c(total_elem, acc_elem, signif(prop_acc_elem, 4)))
@@ -95,6 +97,31 @@ for(i in 1:nrow(data)){
   # Add the gene tree info to the df, with a special case for when the RF is 0
 }
 # Read all the gene trees
+
+```
+
+## Robinson-Foulds distribution
+
+For each element, a gene tree was inferred with IQ-tree and the Robinson-Foulds distance of that gene tree to the species tree was computed.
+
+```{r rf-dists, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
+
+x_comps = list(c("Accelerated", "Not accelerated"))
+
+p1 = ggplot(data, aes(x=acc, y=rf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  xlab("") +
+  ylab("RF to species tree") +
+  bartheme() +
+  theme(legend.position="none")
+print(p1)
+
 
 ```
 
