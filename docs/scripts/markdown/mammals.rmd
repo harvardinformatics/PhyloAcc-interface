@@ -104,7 +104,7 @@ for(i in 1:nrow(data)){
 
 For each element, a gene tree was inferred with IQ-tree and the Robinson-Foulds distance of that gene tree to the species tree was computed.
 
-```{r rf-dists, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
+```{r rf-dists, out.width="50%", fig.align = "center", warning=FALSE, fig.height=5}
 
 x_comps = list(c("Accelerated", "Not accelerated"))
 
