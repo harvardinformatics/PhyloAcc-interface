@@ -40,7 +40,7 @@ species_tree = read.tree(file=species_tree_file)
 
 gene_tree_file = here("docs", "data", "mammal-acc-gene-trees-labeled.txt")
 gene_trees = read.csv(gene_tree_file, sep="\t", header=F)
-names(gene_trees) = c("locus.id", "tree.str")
+names(gene_trees) = c("locus.id", "iqtree.tree.str")
 
 gene_tree_results_file = here("docs", "data", "mammal_gt_model_elem_lik.txt")
 elem_lik = read.csv(gene_tree_results_file, sep="\t", header=T)
@@ -48,7 +48,7 @@ names(elem_lik)[1] = "run.id"
 
 id_key_file = here("docs", "data", "mammal-id-key.txt")
 id_key = read.csv(id_key_file, sep="\t", header=F)
-names(id_key) = c("run.id", "locus.id")
+names(id_key) = c("run.id", "locus.id", "max.marginal.lik", "best.model", "phyloacc.tree.str")
 
 data = merge(gene_trees, id_key, by="locus.id")
 data = merge(data, elem_lik, by="run.id")
@@ -69,7 +69,7 @@ acc_elem = nrow(subset(data, acc=="Accelerated"))
 prop_acc_elem = acc_elem / total_elem
 
 table_data = data.frame("Category"=c("Total elements", "Accelerated elements", "Proportion accelerated"), "Value"=c(total_elem, acc_elem, signif(prop_acc_elem, 4)))
-table_data$Value <- sub("0+$", "", as.character(table_data$Value))
+#table_data$Value <- sub("0+$", "", as.character(table_data$Value))
 
 table_data %>% kable() %>% kable_styling(bootstrap_options=c("striped", "condended", "responsive"), full_width=F)
 
@@ -78,49 +78,100 @@ table_data %>% kable() %>% kable_styling(bootstrap_options=c("striped", "condend
 # Bayes factor and Robinson-Foulds distance to species tree
 
 ```{r calc-rf, out.width="80%", fig.align = "center", warning=FALSE, message=FALSE, fig.height=2.5}
-data$rf = NA
-data$nrf = NA
-data$wrf = NA
-data$spr = NA
-data$kf = NA
-data$path = NA
-data$wpath = NA
-data$num.tips = NA
+data$pa.rf = NA
+data$pa.nrf = NA
+data$pa.wrf = NA
+data$pa.spr = NA
+data$pa.kf = NA
+data$pa.path = NA
+data$pa.wpath = NA
+data$pa.num.tips = NA
+
+data$iq.rf = NA
+data$iq.nrf = NA
+data$iq.wrf = NA
+data$iq.spr = NA
+data$iq.kf = NA
+data$iq.path = NA
+data$iq.wpath = NA
+data$iq.num.tips = NA
 
 for(i in 1:nrow(data)){
-  gt = read.tree(text=data[i,]$tree.str)
+  if(is.na(data[i,]$phyloacc.tree.str)){
+    next
+  }
+  #print(data[i,]$run.id)
+  pa_gt = read.tree(text=data[i,]$phyloacc.tree.str)
   # Read the gene tree as a phylo object
   
-  cur_tips = gt$tip.label
+  cur_tips = pa_gt$tip.label
   pruned_tree = drop.tip(species_tree, species_tree$tip.label[-match(cur_tips, species_tree$tip.label)])
   # Get a list of the tips and prune the species tree to contain only those tips
   
-  cur_rf = RF.dist(pruned_tree, gt, normalize=F)
+  cur_rf = RF.dist(pruned_tree, pa_gt, normalize=F)
   # Calculate RF between the pruned species tree and the gene tree
   
-  cur_nrf = RF.dist(pruned_tree, gt, normalize=T)
+  cur_nrf = RF.dist(pruned_tree, pa_gt, normalize=T)
   # Calculate normalized RF between the pruned species tree and the gene tree
   
-  cur_wrf = wRF.dist(pruned_tree, gt)
+  cur_wrf = wRF.dist(pruned_tree, pa_gt)
   # Calculate weighted RF between the pruned species tree and the gene tree
   
-  cur_spr = SPR.dist(pruned_tree, gt)
+  cur_spr = SPR.dist(pruned_tree, pa_gt)
   
-  cur_kf = KF.dist(pruned_tree, gt)
+  cur_kf = KF.dist(pruned_tree, pa_gt)
   
-  cur_path = path.dist(pruned_tree, gt)
+  cur_path = path.dist(pruned_tree, pa_gt)
   
-  cur_wpath = path.dist(pruned_tree, gt, use.weight=T)
+  cur_wpath = path.dist(pruned_tree, pa_gt, use.weight=T)
   
-  data[i,]$rf = cur_rf
-  data[i,]$nrf = cur_nrf
-  data[i,]$wrf = cur_wrf
-  data[i,]$spr = cur_spr
-  data[i,]$kf = cur_kf
-  data[i,]$path = cur_path
-  data[i,]$wpath = cur_wpath
-  data[i,]$num.tips = length(cur_tips)
+  data[i,]$pa.rf = cur_rf
+  data[i,]$pa.nrf = cur_nrf
+  data[i,]$pa.wrf = cur_wrf
+  data[i,]$pa.spr = cur_spr
+  data[i,]$pa.kf = cur_kf
+  data[i,]$pa.path = cur_path
+  data[i,]$pa.wpath = cur_wpath
+  data[i,]$pa.num.tips = length(cur_tips)
   # Add the gene tree info to the df, with a special case for when the RF is 0
+  
+  
+  iq_gt = read.tree(text=data[i,]$iqtree.tree.str)
+  # Read the gene tree as a phylo object
+  
+  cur_tips = iq_gt$tip.label
+  pruned_tree = drop.tip(species_tree, species_tree$tip.label[-match(cur_tips, species_tree$tip.label)])
+  # Get a list of the tips and prune the species tree to contain only those tips
+  
+  cur_rf = RF.dist(pruned_tree, iq_gt, normalize=F)
+  # Calculate RF between the pruned species tree and the gene tree
+  
+  cur_nrf = RF.dist(pruned_tree, iq_gt, normalize=T)
+  # Calculate normalized RF between the pruned species tree and the gene tree
+  
+  cur_wrf = wRF.dist(pruned_tree, iq_gt)
+  # Calculate weighted RF between the pruned species tree and the gene tree
+  
+  cur_spr = SPR.dist(pruned_tree, iq_gt)
+  
+  cur_kf = KF.dist(pruned_tree, iq_gt)
+  
+  cur_path = path.dist(pruned_tree, iq_gt)
+  
+  cur_wpath = path.dist(pruned_tree, iq_gt, use.weight=T)
+  
+  data[i,]$iq.rf = cur_rf
+  data[i,]$iq.nrf = cur_nrf
+  data[i,]$iq.wrf = cur_wrf
+  data[i,]$iq.spr = cur_spr
+  data[i,]$iq.kf = cur_kf
+  data[i,]$iq.path = cur_path
+  data[i,]$iq.wpath = cur_wpath
+  data[i,]$iq.num.tips = length(cur_tips)
+  # Add the gene tree info to the df, with a special case for when the RF is 0
+  
+  
+  
 }
 # Read all the gene trees
 
@@ -134,11 +185,11 @@ For each element, a gene tree was inferred with IQ-tree and the Robinson-Foulds 
 
 Score is incremented by 1 for each differing branch between the trees
 
-```{r rf-dists, out.width="50%", fig.align = "center", warning=FALSE, fig.height=5}
+```{r rf-dists, out.width="65%", fig.align = "center", warning=FALSE, fig.height=4}
 
 x_comps = list(c("Accelerated", "Not accelerated"))
 
-p1 = ggplot(data, aes(x=acc, y=rf, group=acc, color=acc)) +
+p1 = ggplot(data, aes(x=acc, y=pa.rf, group=acc, color=acc)) +
   #geom_boxplot() +
   geom_quasirandom(size=2, width=0.25, alpha=0.25) +
   geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
@@ -146,12 +197,32 @@ p1 = ggplot(data, aes(x=acc, y=rf, group=acc, color=acc)) +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
   #labs(color="Accelerated?") +
   #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("PhyloAcc gene trees") +
   xlab("") +
   ylab("RF to species tree") +
   bartheme() +
-  theme(legend.position="none")
-print(p1)
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p1)
 
+p2 = ggplot(data, aes(x=acc, y=iq.rf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("IQTree gene trees") +
+  xlab("") +
+  ylab("RF to species tree") +
+  bartheme() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p2)
+
+p = plot_grid(p1, p2, ncol=2)
+print(p)
 
 ```
 
@@ -159,11 +230,11 @@ print(p1)
 
 Score is incremented by 1 for each differing branch between the trees and the final score is divided by the total possible number of differing branches
 
-```{r nrf-dists, out.width="50%", fig.align = "center", warning=FALSE, fig.height=5}
+```{r nrf-dists, out.width="65%", fig.align = "center", warning=FALSE, fig.height=4}
 
 x_comps = list(c("Accelerated", "Not accelerated"))
 
-p1 = ggplot(data, aes(x=acc, y=nrf, group=acc, color=acc)) +
+p1 = ggplot(data, aes(x=acc, y=pa.nrf, group=acc, color=acc)) +
   #geom_boxplot() +
   geom_quasirandom(size=2, width=0.25, alpha=0.25) +
   geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
@@ -171,12 +242,32 @@ p1 = ggplot(data, aes(x=acc, y=nrf, group=acc, color=acc)) +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
   #labs(color="Accelerated?") +
   #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("PhyloAcc gene trees") +
   xlab("") +
   ylab("Normalized RF to species tree") +
   bartheme() +
-  theme(legend.position="none")
-print(p1)
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p1)
 
+p2 = ggplot(data, aes(x=acc, y=iq.nrf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("IQTree gene trees") +
+  xlab("") +
+  ylab("Normalized RF to species tree") +
+  bartheme() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p2)
+
+p = plot_grid(p1, p2, ncol=2)
+print(p)
 
 ```
 
@@ -184,11 +275,11 @@ print(p1)
 
 Score is incremented by the branch length of the differing branch for each differing branch between the trees
 
-```{r wrf-dists, out.width="50%", fig.align = "center", warning=FALSE, fig.height=5}
+```{r wrf-dists, out.width="65%", fig.align = "center", warning=FALSE, fig.height=4}
 
 x_comps = list(c("Accelerated", "Not accelerated"))
 
-p1 = ggplot(subset(data, wrf < 8), aes(x=acc, y=wrf, group=acc, color=acc)) +
+p1 = ggplot(subset(data, pa.wrf < 4), aes(x=acc, y=pa.wrf, group=acc, color=acc)) +
   #geom_boxplot() +
   geom_quasirandom(size=2, width=0.25, alpha=0.25) +
   geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
@@ -196,12 +287,32 @@ p1 = ggplot(subset(data, wrf < 8), aes(x=acc, y=wrf, group=acc, color=acc)) +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
   #labs(color="Accelerated?") +
   #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("PhyloAcc gene trees") +
   xlab("") +
   ylab("Weighted RF to species tree") +
   bartheme() +
-  theme(legend.position="none")
-print(p1)
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p1)
 
+p2 = ggplot(subset(data, iq.wrf < 8), aes(x=acc, y=iq.wrf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("IQTree gene trees") +
+  xlab("") +
+  ylab("Weighted RF to species tree") +
+  bartheme() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p2)
+
+p = plot_grid(p1, p2, ncol=2)
+print(p)
 
 ```
 
@@ -209,32 +320,30 @@ print(p1)
 
 ```{r bf1-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
 
-p1 = ggplot(subset(data, logBF1 < 200), aes(x=logBF1, y=rf, color=acc)) +
+p1 = ggplot(subset(data, logBF1 < 200), aes(x=logBF1, y=iq.wrf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
-  labs(color="Accelerated?") +
+  #labs(color="Accelerated?") +
   #scale_y_continuous(expand=c(0,0)) +
   xlab("log BF1") +
-  ylab("RF to species tree") +
+  ylab("Weighted RF to species tree\n(IQTree gene trees)") +
   bartheme() +
-  theme(legend.position="bottom",
-        legend.title=element_text())
+  theme(legend.position="bottom")
 #print(p1)
 
-p2 = ggplot(subset(data, logBF1 < 20 & logBF1 > -5), aes(x=logBF1, y=rf, color=acc)) +
+p2 = ggplot(subset(data, logBF1 < 20 & logBF1 > -5), aes(x=logBF1, y=iq.wrf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
-  labs(color="Accelerated?") +
+  #labs(color="Accelerated?") +
   #scale_y_continuous(expand=c(0,0)) +
   xlab("log BF1") +
   ylab("") +
   bartheme() +
-  theme(legend.position="bottom",
-        legend.title=element_text())
+  theme(legend.position="bottom")
 #print(p2)
 
 p3 = plot_grid(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"), ncol=2)
@@ -248,32 +357,30 @@ print(p)
 
 ```{r bf2-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
 
-p1 = ggplot(subset(data, logBF2 > -2), aes(x=logBF2, y=rf, color=acc)) +
+p1 = ggplot(subset(data, logBF2 > -2), aes(x=logBF2, y=iq.wrf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
-  labs(color="Accelerated?") +
+  #labs(color="Accelerated?") +
   #scale_y_continuous(expand=c(0,0)) +
   xlab("log BF2") +
-  ylab("RF to species tree") +
+  ylab("Weighted RF to species tree\n(IQTree gene trees)") +
   bartheme() +
-  theme(legend.position="bottom",
-        legend.title=element_text())
+  theme(legend.position="bottom")
 #print(p1)
 
-p2 = ggplot(subset(data, logBF2 > -2 & logBF2 < 50), aes(x=logBF2, y=rf, color=acc)) +
+p2 = ggplot(subset(data, logBF2 > -2 & logBF2 < 50), aes(x=logBF2, y=iq.wrf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
-  labs(color="Accelerated?") +
+  #labs(color="Accelerated?") +
   #scale_y_continuous(expand=c(0,0)) +
   xlab("log BF2") +
   ylab("") +
   bartheme() +
-  theme(legend.position="bottom",
-        legend.title=element_text())
+  theme(legend.position="bottom")
 #print(p2)
 
 p3 = plot_grid(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"), ncol=2)
@@ -289,32 +396,32 @@ print(p)
 
 data$bf.ratio = data$logBF1 / data$logBF2
 
-p1 = ggplot(subset(data, bf.ratio < 10 & bf.ratio > -10), aes(x=bf.ratio, y=rf, color=acc)) +
+p1 = ggplot(subset(data, bf.ratio < 10 & bf.ratio > -10), aes(x=bf.ratio, y=iq.wrf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
-  labs(color="Accelerated?") +
+  #labs(color="Accelerated?") +
   #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("IQtree gene trees") +
   xlab("log BF1 / log BF2") +
-  ylab("RF to species tree") +
+  ylab("Weighted RF to species tree\n(IQtree gene trees)") +
   bartheme() +
-  theme(legend.position="bottom",
-        legend.title=element_text())
+  theme(legend.position="bottom")
 #print(p1)
 
-p2 = ggplot(subset(data, bf.ratio < 5 & bf.ratio > -2), aes(x=bf.ratio, y=rf, color=acc)) +
+p2 = ggplot(subset(data, bf.ratio < 5 & bf.ratio > -2), aes(x=bf.ratio, y=iq.wrf, color=acc)) +
   geom_point(size=2, alpha=0.3) +
   #geom_quasirandom(size=2, width=0.25, alpha=0.25, color="#666666") +
   #geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
   scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
-  labs(color="Accelerated?") +
+  #labs(color="Accelerated?") +
   #scale_y_continuous(expand=c(0,0)) +
+  #ggtitle("") +
   xlab("log BF1 / log BF2") +
   ylab("") +
   bartheme() +
-  theme(legend.position="bottom",
-        legend.title=element_text())
+  theme(legend.position="bottom")
 #print(p2)
 
 p3 = plot_grid(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"), ncol=2)
