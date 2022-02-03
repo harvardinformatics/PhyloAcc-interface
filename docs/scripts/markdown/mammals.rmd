@@ -77,8 +77,14 @@ table_data %>% kable() %>% kable_styling(bootstrap_options=c("striped", "condend
 
 # Bayes factor and Robinson-Foulds distance to species tree
 
-```{r calc-rf, out.width="80%", fig.align = "center", warning=FALSE, fig.height=2.5}
+```{r calc-rf, out.width="80%", fig.align = "center", warning=FALSE, message=FALSE, fig.height=2.5}
 data$rf = NA
+data$nrf = NA
+data$wrf = NA
+data$spr = NA
+data$kf = NA
+data$path = NA
+data$wpath = NA
 data$num.tips = NA
 
 for(i in 1:nrow(data)){
@@ -92,7 +98,27 @@ for(i in 1:nrow(data)){
   cur_rf = RF.dist(pruned_tree, gt, normalize=F)
   # Calculate RF between the pruned species tree and the gene tree
   
+  cur_nrf = RF.dist(pruned_tree, gt, normalize=T)
+  # Calculate normalized RF between the pruned species tree and the gene tree
+  
+  cur_wrf = wRF.dist(pruned_tree, gt)
+  # Calculate weighted RF between the pruned species tree and the gene tree
+  
+  cur_spr = SPR.dist(pruned_tree, gt)
+  
+  cur_kf = KF.dist(pruned_tree, gt)
+  
+  cur_path = path.dist(pruned_tree, gt)
+  
+  cur_wpath = path.dist(pruned_tree, gt, use.weight=T)
+  
   data[i,]$rf = cur_rf
+  data[i,]$nrf = cur_nrf
+  data[i,]$wrf = cur_wrf
+  data[i,]$spr = cur_spr
+  data[i,]$kf = cur_kf
+  data[i,]$path = cur_path
+  data[i,]$wpath = cur_wpath
   data[i,]$num.tips = length(cur_tips)
   # Add the gene tree info to the df, with a special case for when the RF is 0
 }
@@ -103,6 +129,10 @@ for(i in 1:nrow(data)){
 ## Robinson-Foulds distribution
 
 For each element, a gene tree was inferred with IQ-tree and the Robinson-Foulds distance of that gene tree to the species tree was computed.
+
+### Regular RF
+
+Score is incremented by 1 for each differing branch between the trees
 
 ```{r rf-dists, out.width="50%", fig.align = "center", warning=FALSE, fig.height=5}
 
@@ -118,6 +148,56 @@ p1 = ggplot(data, aes(x=acc, y=rf, group=acc, color=acc)) +
   #scale_y_continuous(limits=c(0,200)) +
   xlab("") +
   ylab("RF to species tree") +
+  bartheme() +
+  theme(legend.position="none")
+print(p1)
+
+
+```
+
+### Normalized RF
+
+Score is incremented by 1 for each differing branch between the trees and the final score is divided by the total possible number of differing branches
+
+```{r nrf-dists, out.width="50%", fig.align = "center", warning=FALSE, fig.height=5}
+
+x_comps = list(c("Accelerated", "Not accelerated"))
+
+p1 = ggplot(data, aes(x=acc, y=nrf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  xlab("") +
+  ylab("Normalized RF to species tree") +
+  bartheme() +
+  theme(legend.position="none")
+print(p1)
+
+
+```
+
+### Weighted RF
+
+Score is incremented by the branch length of the differing branch for each differing branch between the trees
+
+```{r wrf-dists, out.width="50%", fig.align = "center", warning=FALSE, fig.height=5}
+
+x_comps = list(c("Accelerated", "Not accelerated"))
+
+p1 = ggplot(subset(data, wrf < 8), aes(x=acc, y=wrf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  xlab("") +
+  ylab("Weighted RF to species tree") +
   bartheme() +
   theme(legend.position="none")
 print(p1)
