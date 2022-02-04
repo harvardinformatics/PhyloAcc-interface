@@ -316,6 +316,51 @@ print(p)
 
 ```
 
+### KF distance
+
+Score is incremented by the differences in branch lengths whether branches exist in both trees or not
+
+```{r kf-dists, out.width="65%", fig.align = "center", warning=FALSE, fig.height=4}
+
+x_comps = list(c("Accelerated", "Not accelerated"))
+
+p1 = ggplot(subset(data, pa.kf < 1.5), aes(x=acc, y=pa.kf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("PhyloAcc gene trees") +
+  xlab("") +
+  ylab("Weighted RF to species tree") +
+  bartheme() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p1)
+
+p2 = ggplot(subset(data, iq.kf < 2), aes(x=acc, y=iq.kf, group=acc, color=acc)) +
+  #geom_boxplot() +
+  geom_quasirandom(size=2, width=0.25, alpha=0.25) +
+  geom_boxplot(outlier.shape=NA, alpha=0.75, width=0.5, color="#666666") +
+  geom_signif(comparisons=x_comps, map_signif_level=TRUE, textsize=4, size=1, step_increase=0.12, margin_top=0.1, color="#333333") +
+  scale_color_manual(values=corecol(numcol=2, pal="wilke")) +
+  #labs(color="Accelerated?") +
+  #scale_y_continuous(limits=c(0,200)) +
+  ggtitle("IQTree gene trees") +
+  xlab("") +
+  ylab("Weighted RF to species tree") +
+  bartheme() +
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0, vjust=6, size=12))
+#print(p2)
+
+p = plot_grid(p1, p2, ncol=2)
+print(p)
+
+```
+
 ## BF1
 
 ```{r bf1-rf, out.width="60%", fig.align = "center", warning=FALSE, fig.height=4}
