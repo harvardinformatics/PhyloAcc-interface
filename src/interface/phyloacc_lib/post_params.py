@@ -31,6 +31,7 @@ def init():
         'github' : 'https://github.com/xyz111131/PhyloAcc/issues',
         'starttime' : timeit.default_timer(),
         'startdatetime' : CORE.getOutTime(),
+        'startdatetimenice' : CORE.getRunTimeNice(),
         # Meta info
 
         'pyver' :  ".".join(map(str, sys.version_info[:3])),
@@ -39,13 +40,29 @@ def init():
         'call' : "",
         # Script call info
 
-        'interface-dir' : False,
+        'interface-run-dir' : False,
+        'interface-logfile' : False,
         'phyloacc-out-dir' : False,
         'id-file' : False,
         # Input with concatenated alignment and partitions by bed file
 
-        'mod-file' : False,
-        # Input rate and tree file from PHAST
+        'bf1-cutoff' : 5,
+        'bf2-cutoff' : 5,
+
+        'locus-stats' : {},
+        'accelerated-loci' : [],
+
+        'complete-batches' : [],
+        'complete-batches-st' : [],
+        'complete-batches-gt' : [],
+        'incomplete-batches' : [],
+        'incomplete-batches-st' : [],
+        'incomplete-batches-gt' : [],
+        'complete-loci' : [],
+        'accelerated-loci' : [],
+        'batch-size' : 0,
+        'procs-per-batch' : 0,
+        'batch-runtimes' : [],
 
         'outdir' : '',
         'run-name' : 'phyloacc-post',
@@ -54,12 +71,32 @@ def init():
         'overwrite' : False,
         # I/O options
         
+        'plot' : False,
+        # Option to output plots/html
+
         'tree-string' : False,
         'tree-dict' : False,
         'labeled-tree' : False,
         'root-node' : False,
         'tree-tips' : False,
         # Tree variables
+
+        'plot-dir' : '',
+        'input-tree-plot-file' : 'input-species-tree.png',
+        'bf1-dist-file' : 'bf1-hist.png',
+        'bf2-dist-file' : 'bf2-hist.png',
+        'bf1-bf2-plot-file' : 'bf1-v-bf2.png',
+        'inf-sites-frac-plot-file' : 'informative-sites-frac-hist.png',
+        'var-inf-sites-plot-file' : 'variable-informative-sites.png',
+        'avg-scf-hist-file' : 'avg-scf-per-locus.png',
+        'low-scf-hist-file' : 'perc-low-scf-branchers-per-locus.png',
+        'scf-tree-plot-file' : 'scf-species-tree.png', 
+        'bl-scf-plot-file' : 'bl-scf.png', 
+        'html-file' : 'phyloacc-results.html',
+        # Plot and HTML summary files
+
+        'html-summary-written' : False,
+        # Output checks
 
         'num-procs' : 1,
         # Number of procs for this script to use
