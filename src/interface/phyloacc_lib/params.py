@@ -133,7 +133,7 @@ def init():
         'phyloacc' : 'PhyloAcc',
         #'phyloacc-gbgc' : 'PhyloAcc/V2_GBGC/PhyloAcc_gBGC',
         #'phyloacc-gt' : 'PhyloAcc-GT2/SRC/PhyloAcc-GT_piQ',
-        #'phyloacc-gt' : 'testSRC_debug4_2tree/PhyloAcc-GT_piQ',
+        'phyloacc-gt' : 'testSRC_debug4_2tree/PhyloAcc-GT_piQ',
         # Dependency paths
 
         'batch-size' : 50,
@@ -252,6 +252,7 @@ def init():
         'WL'                  : { 'type' : "BOOL",      'default' : "FALSE" },
         'BL_WL'               : { 'type' : "POS_INT",   'default' : "15" },
         'CONSERVE_PROP'       : { 'type' : "PERC",      'default' : "0.8" },
+        'CONSERVE_RATE'       : { 'type' : "PROP",      'default' : "NA" },
         'GAP_PROP'            : { 'type' : "PERC",      'default' : "0.8" },
         'CONSTOMIS'           : { 'type' : "PROB",      'default' : "0.5" },
         'BR_SAMPLE_THRESHOLD' : { 'type' : "POS_FLOAT", 'default' : "10" },

@@ -8,7 +8,7 @@ import os
 import math
 import argparse
 import phyloacc_lib.core as CORE
-#import lib.tree as TREE
+import phyloacc_lib.tree as TREE
 
 #############################################################################
 
@@ -51,11 +51,11 @@ def optParse(globs):
 
     parser = argparse.ArgumentParser(description="phyloacc_post.py combines and summarizes the output from batched PhyloAcc runs.");
 
-    parser.add_argument("-i", dest="input_dir", help="A text file with locus names, one per line, corresponding to regions in the input bed file. -a and -b must also be specified.", default=False);
+    parser.add_argument("-i", dest="input_dir", help="The directory created from a phyloacc_interface run.", default=False);
     #parser.add_argument("-m", dest="mod_file", help="A file with a background transition rate matrix and phylogenetic tree with branch lengths as output from PHAST. REQUIRED.", default=False);
     # Input
 
-    parser.add_argument("-o", dest="out_dest", help="Desired output directory. This will be created for you if it doesn't exist. Default: phyloacc-post-[date]-[time]", default=False);
+    parser.add_argument("-o", dest="out_dest", help="Desired output directory. This will be created for you if it doesn't exist. Default: <input directory>/results/", default=False);
     # Output
     
     parser.add_argument("-n", dest="num_procs", help="The number of processes that this script should use. Default: 1.", type=int, default=1);
@@ -65,6 +65,7 @@ def optParse(globs):
     parser.add_argument("--overwrite", dest="ow_flag", help="Set this to overwrite existing files.", action="store_true", default=False);
     # User options
     
+    parser.add_argument("--plot", dest="plot_flag", help="Plot some summaries of the results.", action="store_true", default=False);
     parser.add_argument("--info", dest="info_flag", help="Print some meta information about the program and exit. No other options required.", action="store_true", default=False);
     #parser.add_argument("--dryrun", dest="dryrun", help="With all options provided, set this to run through the whole pseudo-it pipeline without executing external commands.", action="store_true", default=False);
     parser.add_argument("--version", dest="version_flag", help="Simply print the version and exit. Can also be called as '-version', '-v', or '--v'", action="store_true", default=False);
@@ -78,6 +79,8 @@ def optParse(globs):
     
     args = parser.parse_args();
     # The input options and help messages
+
+    ####################
 
     globs['call'] = " ".join(sys.argv);
     # Save the program call for later
@@ -95,14 +98,63 @@ def optParse(globs):
     globs['overwrite'] = args.ow_flag;
     # Check run mode options.
 
-    globs = inputPathCheck(args.input_dir, "dir", True, "-i", globs, "interface-dir");
-    # Input file check
+    ## Run option checks
+    ####################
 
-    globs['phyloacc-out-dir'] = os.path.join(globs['interface-dir'], "phyloacc-job-files", "phyloacc-output");
+    globs = inputPathCheck(args.input_dir, "dir", True, "-i", globs, "interface-run-dir");
+    
+    ## Interface input directory check
+    ####################
+
+    globs['run-name'] = os.path.basename(os.path.normpath(globs['interface-run-dir']));
+    globs['logfilename'] = os.path.join(globs['interface-run-dir'], "final-results.log");
+
+    # Log file
+    ####################
+
+    interface_logfiles = [ f for f in os.listdir(globs['interface-run-dir']) if f.endswith(".log") and f != os.path.basename(globs['logfilename']) ];
+    if len(interface_logfiles) > 1:
+        CORE.errorOut("OP9", "Found multiple logfiles in the input directory. Make sure there is only one coinciding with the run you want to analyze.", globs);
+    if len(interface_logfiles) < 1:
+        CORE.errorOut("OP9", "Cannot find interface logfile in the input directory.", globs);
+    else:
+        globs['interface-logfile'] = os.path.abspath(os.path.join(globs['interface-run-dir'], interface_logfiles[0]));
+
+    ## Interface log file check
+    ####################
+
+    for line in open(globs['interface-logfile']):
+        if line.startswith("# Tree read from mod file:"):
+            globs['tree-string'] = line.strip().replace("# Tree read from mod file:", "");
+            while globs['tree-string'][0] == " ":
+                globs['tree-string'] = globs['tree-string'][1:];
+        # Read the tree string from the MOD file
+
+        if line.startswith("# Loci per batch (-batch)"):
+            globs['batch-size'] = line.strip().replace("# Loci per batch (-batch)", "");
+            globs['batch-size'] = list(filter(None, globs['batch-size'].split(" ")))[0];
+
+        if line.startswith("# Processes per job (-p)"):
+            globs['procs-per-batch'] = line.strip().replace("# Processes per job (-p)", "");
+            globs['procs-per-batch'] = list(filter(None, globs['procs-per-batch'].split(" ")))[0];
+
+    try:
+        globs['tree-dict'], globs['labeled-tree'], globs['root-node'] = TREE.treeParse(globs['tree-string']);
+        globs['tree-tips'] = [ n for n in globs['tree-dict'] if globs['tree-dict'][n][2] == "tip" ];
+    except:
+        CORE.errorOut("OP5", "Error reading tree from interface log file!", globs);
+    # Read the tree from the interface log file
+
+    ## Read info from interface log file
+    ####################
+
+    globs['phyloacc-out-dir'] = os.path.join(globs['interface-run-dir'], "phyloacc-job-files", "phyloacc-output");
+    
     # The directory with all the PhyloAcc output files
+    ####################
 
     if not args.out_dest:
-        globs['outdir'] = os.path.join(globs['interface-dir'], "phyloacc-post-out-" + globs['startdatetime']);
+        globs['outdir'] = os.path.join(globs['interface-run-dir'], "results");
     else:
         globs['outdir'] = args.out_dest;
 
@@ -113,19 +165,33 @@ def optParse(globs):
         os.makedirs(globs['outdir']);
     # Main output dir
 
-    globs['run-name'] = os.path.basename(os.path.normpath(globs['outdir']));
-    globs['logfilename'] = os.path.join(globs['outdir'], globs['run-name'] + ".log");
-    # Log file
+    ####################
+
+    if args.plot_flag:
+        globs['plot-dir'] = os.path.join(globs['interface-run-dir'], "plots");
+        if not os.path.isdir(globs['plot-dir']) and not globs['norun']:
+            os.makedirs(globs['plot-dir']);
+        globs['plot'] = True;
+        # Plot option
+
+        globs['html-file'] = os.path.join(globs['interface-run-dir'], globs['html-file']);
+        # HTML directory
+    # Parse the --plot option
+
+    ####################
 
     globs['num-procs'] = CORE.isPosInt(args.num_procs, default=1);
     # Num procs option
+
+    ####################
 
     if args.quiet_flag:
         globs['quiet'] = True;
     # Checking the quiet flag
 
-    startProg(globs);
+    ####################
 
+    startProg(globs);
     return globs;
 
 #############################################################################
@@ -154,11 +220,12 @@ def startProg(globs):
     opt_pad = 30;
     CORE.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 150);
     CORE.printWrite(globs['logfilename'], globs['log-v'], "# INPUT/OUTPUT INFO:");
-    CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# PhyloAcc interface dir:", pad) + globs['interface-dir']);
+    CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# PhyloAcc interface dir:", pad) + globs['interface-run-dir']);
+    CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# PhyloAcc interface log file:", pad) + globs['interface-logfile']);
     #CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# Tree/rate file (mod file from PHAST):", pad) + globs['mod-file']);
     #CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# Tree read from mod file:", pad) + globs['tree-string']);
-    CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# Output directory:", pad) + globs['outdir']);
     CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# PhyloAcc run directory:", pad) + globs['phyloacc-out-dir']);
+    CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# Output directory:", pad) + globs['outdir']);
     CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# Log file:", pad) + os.path.basename(globs['logfilename']));
     # Input/Output
     #######################
@@ -167,6 +234,19 @@ def startProg(globs):
     CORE.printWrite(globs['logfilename'], globs['log-v'], "# OPTIONS INFO:");    
     CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# Option", pad) + CORE.spacedOut("Current setting", opt_pad) + "Current action");
 
+    if globs['plot']:
+        plot_status = "True";
+        plot_status_str = "An HTML file summarizing the results will be written to " + globs['html-file'];
+    else:
+        plot_status = "False";
+        plot_status_str = "No HTML summary file will be generated.";
+
+    CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# --plot", pad) + 
+                CORE.spacedOut(plot_status, opt_pad) + 
+                plot_status_str);
+    # --plot option
+
+    ####################
 
     # CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# Processes (-p)", pad) + 
     #             CORE.spacedOut(str(globs['num-procs']), opt_pad) + 
@@ -177,6 +257,8 @@ def startProg(globs):
                     CORE.spacedOut("True", opt_pad) + 
                     "PhyloAcc_post will OVERWRITE the existing files in the specified output directory.");
     # Reporting the overwrite option.
+
+    ####################
 
     if not globs['quiet']:
         CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# --quiet", pad) + 
@@ -189,6 +271,8 @@ def startProg(globs):
         CORE.printWrite(globs['logfilename'], globs['log-v'], "# " + "-" * 150);
         CORE.printWrite(globs['logfilename'], globs['log-v'], "# Running...");
     # Reporting the quiet option.
+
+    ####################
 
     # if globs['debug']:
     #     CORE.printWrite(globs['logfilename'], globs['log-v'], CORE.spacedOut("# --debug", pad) + 
