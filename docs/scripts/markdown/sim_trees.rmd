@@ -1,0 +1,352 @@
+---
+title: "PhyloAcc simulations"
+author: "[gwct](https://gwct.github.io/)"
+date: "`r format(Sys.time(), '%m/%d/%Y %H:%M:%S %Z')`"
+output:
+  #html_document:
+  rmdformats::robobook:
+    highlight: kate
+    includes:
+      in_header: '../html-chunks/rmd_header.html'
+    df_print: paged
+    code_folding: hide
+    number_sections: true
+    toc_depth: 3
+---
+
+
+```{r setup, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(ggtree)
+library(phangorn)
+library(ape)
+library(kableExtra)
+library(ggbeeswarm)
+library(ggsignif)
+library(here)
+source("../lib/design.r")
+source("../lib/get_tree_info.r")
+```
+
+```{r read, warning=FALSE, message=FALSE}
+
+treefile = here("docs", "data", "ratite-sim.tre")
+sim_tree = read.tree(treefile)
+tree_to_df_list = treeToDF(sim_tree)
+sim_tree_info = tree_to_df_list[["info"]]
+# Read the tree and parse with treetoDF
+
+sim_tree_info = sim_tree_info[order(sim_tree_info$node), ]
+# Re-sort the data frame by R node order after the merge so the trees still work
+
+#tree_info_file = here("docs", "data", "ratite-sim.csv")
+#write.csv(file=tree_info_file, sim_tree_info, row.names=F)
+# Write the tree info to a csv
+
+sim_info_file = here("docs", "data", "ratite-sim-cases.csv")
+sim_info = read.csv(sim_info_file, header=T)
+# Read the tree info with simulation cases
+
+```
+
+# Simulations
+
+These are the simulations as they are currently laid out in the paper. Orange branches are simulated to be conserved and blue branches accelerated.
+
+```{r case-trees, warning=FALSE, message=FALSE}
+
+plot_sim_tree = function (tree, data, case) {
+  case_str = paste("Case.", case, sep="")
+  #print(case_str)
+  
+  ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
+  #tree_p = ggtree(sim_tree, size=2, ladderize=F, aes_string(data=sim_info, color=case_str)) +
+    xlim(0,10) +
+    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    geom_tiplab(color="#333333", fontface='italic', size=6) +
+    ggtitle(paste("Case", case)) +
+    theme(legend.position=c(0.5,0.5))
+  # Option to add branch labels to the figure
+}
+# Function to plot a tree
+
+rm_legend = function(legend_p){
+  legend_p + theme(legend.position="none")
+}
+# Function to remove a legend from a plot
+
+cases = c(2,3,4,5,6)
+tree_figs1 = lapply(cases, plot_sim_tree, tree=sim_tree, data=sim_info)
+# Plot trees for each of the 5 simulation cases and save them in a list
+
+legend = get_legend(tree_figs1[[1]])
+# Get the legend from one of the tree figures
+
+tree_figs = lapply(tree_figs1, rm_legend)
+# Remove the legends from the individual tree figures
+
+tree_figs[[6]] = legend
+# Add the legend previously retrieved as its own figure in the list of figures
+
+p = plot_grid(plotlist=tree_figs, ncol=3, nrow=2)
+print(p)
+# Combine the tree figures and legend and output
+
+```
+
+By testing the effects of different simulated lineages with different target regimes we should be able to assess the performance of PhyloAcc.
+
+# Monophyletic acceleration
+
+Case 3 above represents acceleration in a monophyletic clade. Here, the branch colors correspond to how the branch was simulated. Branches with green stars above them are those that would be specified as target lineages when running PhyloAcc. 
+
+```{r monophyletic-sims, warning=FALSE, message=FALSE, out.width="66%", fig.align="center", fig.height=3}
+
+plot_target_tree = function (tree, data, case, targets) {
+  
+  case_str = paste("Case.", case, sep="")
+  #print(case_str)
+  
+  target_str = paste("case", case, ".targets.", targets, sep="")
+  #print(target_str)
+  
+  title = paste("Case", case, "- Monophyletic")
+  if(targets == 1){
+    title = paste(title, "\nCorrect targets")
+  }else if(targets == 2){
+    title = paste(title, "\nExtra targets")
+  }else if(targets == 3){
+    title = paste(title, "\nTargets included")
+  }
+  
+  ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
+    xlim(0,10) +
+    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    geom_tiplab(color="#333333", fontface='italic', size=6) +
+    geom_label(aes(x=branch, label=ifelse(data[[target_str]]=="Y","*",NA)), label.size=NA, size=10, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
+    ggtitle(title) +
+    theme(legend.position="none")
+  # Option to add branch labels to the figure
+  
+}
+# Function to plot a tree
+
+targets = c(1,2,3)
+tree_figs = lapply(targets, plot_target_tree, case=3, tree=sim_tree, data=sim_info)
+# Plot trees for each of the 5 simulation cases and save them in a list
+
+
+p = plot_grid(plotlist=tree_figs, ncol=3, nrow=1)
+print(p)
+# Combine the tree figures and legend and output
+
+```
+
+1. The leftmost panel represents using the branches simulated as accelerated in Case 3 and specifying those same target lineages.
+    + Mentioned when comparing logBF1 (FIgure 2 AUPRC), probability of acceleration P(Z=2|Y) (Figure 3 boxplots), logBF1 while varying theta (Figure 5 AUPRC), and probability of acceleration P(Z=2|Y) while varying theta (Figure 6 boxplots, Figure 7 lineplots), and TP and TN rates (Table 2)
+2. The middle panel represents using the branches simulated as accelerated in Case 3 and specifying the lineages from Case 6 as targets.
+    + Not mentioned
+3. The middle panel represents using the branches simulated as accelerated in Case 3 and specifying only K as targets.
+    + Not mentioned
+
+# Paraphyletic acceleration
+
+Case 4 above represents acceleration in a paraphyletic clade. Here, the branch colors correspond to how the branch was simulated. Branches with green stars above them are those that would be specified as target lineages when running PhyloAcc. 
+
+```{r paraphyletic-sims, warning=FALSE, message=FALSE, out.width="66%", fig.align="center", fig.height=3}
+
+plot_target_tree = function (tree, data, case, targets) {
+  
+  case_str = paste("Case.", case, sep="")
+  #print(case_str)
+  
+  target_str = paste("case", case, ".targets.", targets, sep="")
+  #print(target_str)
+  
+  title = paste("Case", case, "- Paraphyletic")
+  if(targets == 1){
+    title = paste(title, "\nCorrect targets")
+  }else if(targets == 2){
+    title = paste(title, "\nExtra targets")
+  }else if(targets == 3){
+    title = paste(title, "\nTargets included")
+  }
+  
+  ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
+    xlim(0,10) +
+    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    geom_tiplab(color="#333333", fontface='italic', size=6) +
+    geom_label(aes(x=branch, label=ifelse(data[[target_str]]=="Y","*",NA)), label.size=NA, size=10, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
+    ggtitle(title) +
+    theme(legend.position="none")
+  # Option to add branch labels to the figure
+  
+}
+# Function to plot a tree
+
+targets = c(1,2,3)
+tree_figs = lapply(targets, plot_target_tree, case=4, tree=sim_tree, data=sim_info)
+# Plot trees for each of the 5 simulation cases and save them in a list
+
+
+p = plot_grid(plotlist=tree_figs, ncol=3, nrow=1)
+print(p)
+# Combine the tree figures and legend and output
+
+```
+
+
+1. The leftmost panel represents using the branches simulated as accelerated in Case 4 and specifying those same target lineages.
+    + Mentioned when comparing logBF1 (Figure 2 AUPRC), probability of acceleration P(Z=2|Y) (Figure 3 boxplots), and logBF1 while varying theta (Figure 5 AUPRC)
+2. The middle panel represents using the branches simulated as accelerated in Case 4 and specifying the lineages from Case 4 + T as targets.
+    + Not mentioned
+3. The middle panel represents using the branches simulated as accelerated in Case 4 and specifying the lineages from Case 6 as targets.
+    + Not mentioned
+
+# Convergent acceleration
+
+Case 2 above represents convergent acceleration in multiple lineages. Here, the branch colors correspond to how the branch was simulated. Branches with green stars above them are those that would be specified as target lineages when running PhyloAcc. 
+
+```{r convergence-sims, warning=FALSE, message=FALSE, out.width="66%", fig.align="center", fig.height=3}
+
+plot_target_tree = function (tree, data, case, targets) {
+  
+  case_str = paste("Case.", case, sep="")
+  #print(case_str)
+  
+  target_str = paste("case", case, ".targets.", targets, sep="")
+  #print(target_str)
+  
+  title = paste("Case", case, "- Convergence")
+  if(targets == 1){
+    title = paste(title, "\nCorrect targets")
+  }else if(targets == 2){
+    title = paste(title, "\nExtra targets")
+  }else if(targets == 3){
+    title = paste(title, "\nTargets included")
+  }
+  
+  ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
+    xlim(0,10) +
+    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    geom_tiplab(color="#333333", fontface='italic', size=6) +
+    geom_label(aes(x=branch, label=ifelse(data[[target_str]]=="Y","*",NA)), label.size=NA, size=10, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
+    ggtitle(title) +
+    theme(legend.position="none")
+  # Option to add branch labels to the figure
+  
+}
+# Function to plot a tree
+
+targets = c(1,2,3)
+tree_figs = lapply(targets, plot_target_tree, case=2, tree=sim_tree, data=sim_info)
+# Plot trees for each of the 5 simulation cases and save them in a list
+
+
+p = plot_grid(plotlist=tree_figs, ncol=3, nrow=1)
+print(p)
+# Combine the tree figures and legend and output
+
+```
+
+
+1. The leftmost panel represents using the branches simulated as accelerated in Case 2 and specifying those same target lineages.
+    + Mentioned when comparing logBF1 (FIgure 2 AUPRC), probability of acceleration P(Z=2|Y) (Figure 3 boxplots), logBF1 while varying theta (Figure 5 AUPRC), and probability of acceleration P(Z=2|Y) while varying theta (Figure 7 lineplots), and TP and TN rates (Table 2)  
+2. The middle panel represents using the branches simulated as accelerated in Case 2 and specifying the lineages from Case 6 as targets.
+    + Not mentioned
+3. The middle panel represents using the branches simulated as accelerated in Case 2 and specifying only K as the target lineage.
+    + Not Mentioned
+
+# Other comparisons mentioned in the paper
+
+### Figure 2
+
+```{r comp-2-4, warning=FALSE, message=FALSE, out.width="25%", fig.align="center", fig.height=7}
+
+case = 2
+targets = 4
+case_str = paste("Case.", case, sep="")
+target_str = paste("Case.", targets, sep="")
+title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
+tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
+  xlim(0,7) +
+  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  geom_tiplab(color="#333333", fontface='italic', size=10) +
+  geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
+  ggtitle(title) +
+  theme(legend.position="none", plot.title=element_text(size=24))
+# Option to add branch labels to the figure
+print(tree_fig)
+
+###############
+```
+
+### Table 1, Figure 4
+
+```{r comp-3-2, warning=FALSE, message=FALSE, out.width="25%", fig.align="center",fig.height=7}
+case = 3
+targets = 2
+case_str = paste("Case.", case, sep="")
+target_str = paste("Case.", targets, sep="")
+title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
+tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
+  xlim(0,7) +
+  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  geom_tiplab(color="#333333", fontface='italic', size=10) +
+  geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
+  ggtitle(title) +
+  theme(legend.position="none", plot.title=element_text(size=24))
+# Option to add branch labels to the figure
+print(tree_fig)
+
+###############
+```
+
+### Table 1, Figure 4
+
+```{r comp-6-2, warning=FALSE, message=FALSE, out.width="25%", fig.align="center", fig.height=7}
+case = 6
+targets = 2
+case_str = paste("Case.", case, sep="")
+target_str = paste("Case.", targets, sep="")
+title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
+tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
+  xlim(0,7) +
+  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  geom_tiplab(color="#333333", fontface='italic', size=10) +
+  geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
+  ggtitle(title) +
+  theme(legend.position="none", plot.title=element_text(size=24))
+# Option to add branch labels to the figure
+print(tree_fig)
+
+###############
+```
+
+### Table 1, Figure 4
+
+```{r comp-3-5, warning=FALSE, message=FALSE, out.width="25%", fig.align="center", fig.height=7}
+case = 3
+targets = 5
+case_str = paste("Case.", case, sep="")
+target_str = paste("Case.", targets, sep="")
+title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
+tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
+  xlim(0,7) +
+  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  geom_tiplab(color="#333333", fontface='italic', size=10) +
+  geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
+  ggtitle(title) +
+  theme(legend.position="none", plot.title=element_text(size=24))
+# Option to add branch labels to the figure
+print(tree_fig)
+
+###############
+```
+
+
+
