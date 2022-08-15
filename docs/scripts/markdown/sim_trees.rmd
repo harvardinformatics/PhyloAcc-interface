@@ -59,6 +59,8 @@ These are the simulations as they are currently laid out in the paper. Orange br
 
 ```{r case-trees, warning=FALSE, message=FALSE}
 
+sim_cols = c("N"="#333333", "Y"=corecol(pal="wilke", numcol=1))
+
 plot_sim_tree = function (tree, data, case) {
   case_str = paste("Case.", case, sep="")
   #print(case_str)
@@ -66,7 +68,8 @@ plot_sim_tree = function (tree, data, case) {
   ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
   #tree_p = ggtree(sim_tree, size=2, ladderize=F, aes_string(data=sim_info, color=case_str)) +
     xlim(0,10) +
-    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
     geom_tiplab(color="#333333", fontface='italic', size=6) +
     ggtitle(paste("Case", case)) +
     theme(legend.position=c(0.5,0.5))
@@ -125,7 +128,8 @@ plot_target_tree = function (tree, data, case, targets) {
   
   ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
     xlim(0,10) +
-    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
+    #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
     geom_tiplab(color="#333333", fontface='italic', size=6) +
     geom_label(aes(x=branch, label=ifelse(data[[target_str]]=="Y","*",NA)), label.size=NA, size=10, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
     ggtitle(title) +
@@ -178,7 +182,8 @@ plot_target_tree = function (tree, data, case, targets) {
   
   ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
     xlim(0,10) +
-    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
+    #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
     geom_tiplab(color="#333333", fontface='italic', size=6) +
     geom_label(aes(x=branch, label=ifelse(data[[target_str]]=="Y","*",NA)), label.size=NA, size=10, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
     ggtitle(title) +
@@ -232,7 +237,8 @@ plot_target_tree = function (tree, data, case, targets) {
   
   ggtree(tree, size=2, ladderize=F, aes(color=data[[case_str]])) +
     xlim(0,10) +
-    scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+    scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
+    #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
     geom_tiplab(color="#333333", fontface='italic', size=6) +
     geom_label(aes(x=branch, label=ifelse(data[[target_str]]=="Y","*",NA)), label.size=NA, size=10, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
     ggtitle(title) +
@@ -274,7 +280,8 @@ target_str = paste("Case.", targets, sep="")
 title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
 tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
   xlim(0,7) +
-  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
+  #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
   geom_tiplab(color="#333333", fontface='italic', size=10) +
   geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
   ggtitle(title) +
@@ -295,7 +302,8 @@ target_str = paste("Case.", targets, sep="")
 title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
 tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
   xlim(0,7) +
-  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
+  #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
   geom_tiplab(color="#333333", fontface='italic', size=10) +
   geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
   ggtitle(title) +
@@ -316,7 +324,8 @@ target_str = paste("Case.", targets, sep="")
 title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
 tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
   xlim(0,7) +
-  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
+  #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
   geom_tiplab(color="#333333", fontface='italic', size=10) +
   geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
   ggtitle(title) +
@@ -337,7 +346,8 @@ target_str = paste("Case.", targets, sep="")
 title = paste("Simulated: Case ", case, "\nTargets: Case ", targets, sep="")
 tree_fig = ggtree(sim_tree, size=4, ladderize=F, aes(color=sim_info[[case_str]])) +
   xlim(0,7) +
-  scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
+  scale_color_manual(name='Accelerated lineages:', values=sim_cols, breaks=c("Y")) +
+  #scale_color_manual(name='Accelerated?', values=corecol(pal="wilke", numcol=2)) +
   geom_tiplab(color="#333333", fontface='italic', size=10) +
   geom_label(aes(x=branch, label=ifelse(sim_info[[target_str]]=="Y","*",NA)), label.size=NA, size=16, fill="transparent", color=corecol(pal="wilke", numcol=1, offset=2), show.legend=F, vjust=0.3) +
   ggtitle(title) +
