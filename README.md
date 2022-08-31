@@ -1,5 +1,8 @@
 # PhyloAcc-interface
 
+# This repo is no longer up to date or supported. For the current version of PhyloAcc visit the website at https://phyloacc.github.io/
+
+<!-- 
 ## PhyloAcc
 
 [PhyloAcc](https://xyz111131.github.io/PhyloAcc/) is a software package that can estimate substitution rates in non-coding genomic regions of comparative data. PhyloAcc also estimates lineage-specific rate categories for each region to determine elements that may be conserved or evolving at an accelerated rate relative to the background rates. These categories can be used to test for convergent evolution among lineages of interest.
@@ -18,3 +21,4 @@ The goals of this repository include:
 2. Initial assessment of input data to inform model selection.
 3. Batching data for easy parallelization.
 
+-->
