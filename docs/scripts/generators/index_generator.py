@@ -33,6 +33,7 @@ html_template = """
 				<li><h3><a href="cf.html">Concordance factors to inform model selection</a></h3></li>
 				<li><h3><a href="mammals.html">Accelerated mammal elements with gene tree model</a></h3></li>
 				<li><h3><a href="sim_trees.html">Tree figures for simulations</a></h3></li>
+				<li><h3><a href="action_20221007.html">2022.10.07 - Manuscript action items</a></h3></li>
 			</ul>
 		</div>
         <div class="col-2-24" id="margin"></div>
