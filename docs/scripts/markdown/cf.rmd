@@ -19,11 +19,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 library(ggplot2)
-library(dplyr)
 library(cowplot)
 library(phangorn)
 library(ape)
-source("../lib/design.r")
+library(here)
+source(here("docs", "scripts", "lib", "design.r"))
 ```
 
 [< Back ](index.html)
@@ -74,20 +74,19 @@ Notes on runtime for concordance factor calculations:
 # Results
 
 ```{r read, out.width="100%", fig.align = "center", warning=FALSE}
-sim_stats = read.csv("../../data/phyloacc-aln-stats-sim.csv", header=T)
-sim_bed = read.csv("../../data/simu_500_200_diffr_2-1.bed", header=F, sep="\t")
+sim_stats = read.csv(here("docs", "data", "phyloacc-aln-stats-sim.csv"), header=T)
+sim_bed = read.csv(here("docs", "data", "simu_500_200_diffr_2-1.bed"), header=F, sep="\t")
 names(sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate")
-sim_data = merge(sim_stats, sim_bed, by="locus")
-sim_quartets = read.csv("../../data/quartet-stats-sim.csv")
+sim_data = merge(sim_stats, sim_bed, by="locus")  
+sim_quartets = read.csv(here("docs", "data", "quartet-stats-sim.csv"))
 
-msc_sim_stats = read.csv("../../data/phyloacc-aln-stats-sim-msc.csv", header=T)
-msc_sim_bed = read.csv("../../data/simu_msc_200_100_2-5.bed", header=F, sep="\t")
+msc_sim_stats = read.csv(here("docs", "data", "phyloacc-aln-stats-sim-msc.csv"), header=T)
+msc_sim_bed = read.csv(here("docs", "data", "simu_msc_200_100_2-5.bed"), header=F, sep="\t")
 names(msc_sim_bed) = c("scaff", "start", "end", "locus", "cat", "rho", "rate", "gene.tree")
 msc_sim_data = merge(msc_sim_stats, msc_sim_bed, by="locus")  
-msc_sim_quartets = read.csv("../../data/quartet-stats-sim-msc.csv")
 
-ratite_stats = read.csv("../../data/phyloacc-aln-stats-ratite-all.csv", header=T)
-ratite_bed = read.csv("../../data/allspecies_cnee_concat_partitions.bed", header=F, sep="\t")
+ratite_stats = read.csv(here("docs", "data", "phyloacc-aln-stats-ratite-all.csv"), header=T)
+ratite_bed = read.csv(here("docs", "data", "allspecies_cnee_concat_partitions.bed"), header=F, sep="\t")
 names(ratite_bed) = c("scaff", "start", "end", "locus")
 ratite_data = merge(ratite_stats, ratite_bed, by="locus")
 ```
